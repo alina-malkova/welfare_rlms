@@ -18,8 +18,15 @@ clear all
 set more off
 capture log close
 
-* Load globals
-quietly do "${dodir}/welfare_globals.do"
+* Set globals directly (for batch mode compatibility)
+global base "/Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTechnology/_Research/Credit_Market/Credit market (1)"
+global welfare "${base}/Welfare analysis"
+global dodir "${welfare}/Do files"
+global data "${welfare}/Data"
+global results "${welfare}/Results"
+global tables "${welfare}/Tables"
+global figures "${welfare}/Figures"
+global logdir "${welfare}/Logs"
 
 * Start log
 log using "${logdir}/R3_correlated_random_effects.log", replace text
@@ -70,20 +77,24 @@ di as text    "=============================================="
 
 * Lagged income (for selection into informality)
 sort idind year
+capture drop L_lny_lab L2_lny_lab
 by idind: gen L_lny_lab = lny_lab[_n-1]
 by idind: gen L2_lny_lab = lny_lab[_n-2]
 label variable L_lny_lab "Lagged log labor income"
 label variable L2_lny_lab "Twice-lagged log labor income"
 
 * Lagged informality status
+capture drop L_informal
 by idind: gen L_informal = informal[_n-1]
 label variable L_informal "Lagged informal status"
 
 * Lagged consumption (for state dependence)
+capture drop L_lnc
 by idind: gen L_lnc = lnc[_n-1]
 label variable L_lnc "Lagged log consumption"
 
 * Employment transition indicator
+capture drop transition_to_informal transition_to_formal
 gen transition_to_informal = (L_informal == 0 & informal == 1) if !missing(L_informal, informal)
 gen transition_to_formal = (L_informal == 1 & informal == 0) if !missing(L_informal, informal)
 label variable transition_to_informal "Transitioned to informal"
@@ -141,10 +152,8 @@ di as text    "=============================================="
 * Include predictors: lagged income, lagged informal status, demographics,
 * regional labor market conditions
 
-* Regional unemployment rate as exclusion restriction
-* (affects selection but not consumption conditional on income)
-capture gen regional_urate = .
-replace regional_urate = 0.08 if region_code <= 20  // placeholder
+* Note: Regional unemployment could serve as exclusion restriction
+* but is not available in current data. Using time-varying selection approach instead.
 
 probit informal L_lny_lab L2_lny_lab L_informal ///
     age age2 i.female i.married i.educat hh_size ///
@@ -153,6 +162,7 @@ probit informal L_lny_lab L2_lny_lab L_informal ///
 est store selection_probit
 
 * Compute inverse Mills ratio
+capture drop xb_selection imr imr_neg mills_ratio
 predict double xb_selection, xb
 gen double imr = normalden(xb_selection) / normal(xb_selection)
 gen double imr_neg = normalden(xb_selection) / (1 - normal(xb_selection))
@@ -226,6 +236,7 @@ di as text    "  5. Selection × Shock Type Interactions"
 di as text    "=============================================="
 
 * Does selection affect smoothing of gains vs losses differently?
+capture drop mills_x_pos mills_x_neg
 gen double mills_x_pos = mills_ratio * dlny_pos
 gen double mills_x_neg = mills_ratio * dlny_neg
 label variable mills_x_pos "Mills ratio × Positive shock"
@@ -280,6 +291,7 @@ foreach yr of local years {
 
 * Replace missing with overall IMR
 replace `imr_tv' = mills_ratio if missing(`imr_tv')
+capture drop mills_tv
 gen double mills_tv = `imr_tv'
 label variable mills_tv "Time-varying inverse Mills ratio"
 
