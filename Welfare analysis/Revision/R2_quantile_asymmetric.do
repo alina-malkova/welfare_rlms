@@ -118,9 +118,21 @@ forvalues q = 10(10)90 {
 
     di as text _n "--- Quantile τ = `tau' ---"
 
-    * Quantile regression with bootstrap SE
-    quietly qreg dlnc dlny_pos dlny_neg informal dlny_pos_x_inf dlny_neg_x_inf ///
+    * Quantile regression with robust SE (capture errors at extreme quantiles)
+    capture quietly qreg dlnc dlny_pos dlny_neg informal dlny_pos_x_inf dlny_neg_x_inf ///
         $X_qreg i.year, quantile(`tau') vce(robust)
+
+    * If robust VCE fails, try without vce option
+    if _rc != 0 {
+        di as text "  (robust VCE failed, using default)"
+        capture quietly qreg dlnc dlny_pos dlny_neg informal dlny_pos_x_inf dlny_neg_x_inf ///
+            $X_qreg i.year, quantile(`tau')
+    }
+
+    if _rc != 0 {
+        di as text "  (quantile regression failed at τ = `tau')"
+        continue
+    }
 
     * Store estimates
     matrix `QR'[`row', 1] = `tau'
