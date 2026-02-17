@@ -1,0 +1,30 @@
+# Large data files
+*.dta
+*.zip
+*.rar
+*.csv
+
+# Keep specific small CSV outputs
+!Welfare analysis/Tables/*.csv
+!Comparative Economics/*.csv
+
+# Stata temporary files
+*.smcl
+
+# macOS
+.DS_Store
+
+# Temporary files
+*.tmp
+*~
+
+# Large RLMS data folders
+Welfare analysis/Data/HH/
+Welfare analysis/Data/IND/
+Welfare analysis/Data/CBR_data/
+Welfare analysis/Data/Rosstat_data/
+Data/
+
+# Python cache
+__pycache__/
+*.pyc

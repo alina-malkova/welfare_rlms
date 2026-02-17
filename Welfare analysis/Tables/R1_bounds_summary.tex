@@ -1,0 +1,27 @@
+\begin{table}[htbp]
+\centering
+\caption{Partial Identification of Loss Aversion Parameter}
+\label{tab:lambda_bounds}
+\begin{tabular}{lcccc}
+\toprule
+ & \multicolumn{2}{c}{Point Estimate} & \multicolumn{2}{c}{95\% CI} \\
+Curvature ($\eta$) & $\lambda$ (Formal) & $\lambda$ (Informal) & Lower & Upper \\
+\midrule
+0.50 & 1.099 & 3.877 & 1.933 & 6.491 \\
+0.75 & 1.065 & 2.468 & 1.552 & 3.480 \\
+0.88 & 1.055 & 2.160 & 1.454 & 2.894 \\
+1.00 & 1.048 & 1.969 & 1.390 & 2.548 \\
+\midrule
+\multicolumn{5}{l}{\textit{Identified set over $\eta \in [0.1, 1.0]$:}} \\
+ & & [2.041, 876.433] & [1.415 &  1.2e+04] \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Notes: Loss aversion parameter $\lambda$ identified from asymmetric 
+consumption responses to positive vs negative income shocks. 
+ = |\beta^-| / |\beta^+|$ is the ratio of responses. 
+Under prospect theory, $\lambda(\eta) = R^{1/\eta}$. 
+Kahneman-Tversky benchmark: $\eta = 0.88$, $\lambda = 2.25$.
+\end{tablenotes}
+\end{table}

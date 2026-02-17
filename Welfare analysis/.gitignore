@@ -1,0 +1,17 @@
+# Data files (too large for git)
+Data/HH/
+Data/IND/
+Data/*.dta
+Data/CBR_data/
+Data/Rosstat_data/
+
+# Stata temporary files
+*.smcl
+*.log~
+
+# macOS
+.DS_Store
+
+# Temporary files
+*.tmp
+*~
