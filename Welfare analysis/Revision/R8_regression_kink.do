@@ -19,8 +19,15 @@ clear all
 set more off
 capture log close
 
-* Load globals
-quietly do "${dodir}/welfare_globals.do"
+* Set globals directly (for batch mode compatibility)
+global base "/Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTechnology/_Research/Credit_Market/Credit market (1)"
+global welfare "${base}/Welfare analysis"
+global dodir "${welfare}/Do files"
+global data "${welfare}/Data"
+global results "${welfare}/Results"
+global tables "${welfare}/Tables"
+global figures "${welfare}/Figures"
+global logdir "${welfare}/Logs"
 
 * Start log
 log using "${logdir}/R8_regression_kink.log", replace text

@@ -20,8 +20,15 @@ clear all
 set more off
 capture log close
 
-* Load globals
-quietly do "${dodir}/welfare_globals.do"
+* Set globals directly (for batch mode compatibility)
+global base "/Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTechnology/_Research/Credit_Market/Credit market (1)"
+global welfare "${base}/Welfare analysis"
+global dodir "${welfare}/Do files"
+global data "${welfare}/Data"
+global results "${welfare}/Results"
+global tables "${welfare}/Tables"
+global figures "${welfare}/Figures"
+global logdir "${welfare}/Logs"
 
 * Start log
 log using "${logdir}/R6_bpp_decomposition.log", replace text
@@ -74,6 +81,7 @@ di as text    "=============================================="
 sort idind year
 
 * Income growth leads and lags
+capture drop dlny_lag1 dlny_lag2 dlny_lead1 dlny_lead2
 by idind: gen dlny_lag1 = dlny_lab[_n-1]
 by idind: gen dlny_lag2 = dlny_lab[_n-2]
 by idind: gen dlny_lead1 = dlny_lab[_n+1]
@@ -85,10 +93,12 @@ label variable dlny_lead1 "Δln(Y)_{t+1}"
 label variable dlny_lead2 "Δln(Y)_{t+2}"
 
 * Consumption growth leads
+capture drop dlnc_lead1
 by idind: gen dlnc_lead1 = dlnc[_n+1]
 label variable dlnc_lead1 "Δln(C)_{t+1}"
 
 * Sample with all needed lags/leads
+capture drop bpp_sample
 gen byte bpp_sample = !missing(dlnc, dlny_lab, dlny_lag1, dlny_lead1)
 count if bpp_sample == 1
 local N_bpp = r(N)

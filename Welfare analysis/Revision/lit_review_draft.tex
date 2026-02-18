@@ -1,0 +1,70 @@
+%===============================================================================
+% REVISED LITERATURE REVIEW SECTION
+% Positioning: Household-side complement to production-side informality literature
+%===============================================================================
+
+\subsection{Related Literature}
+
+This paper contributes to three strands of literature: the welfare costs of labor informality, consumption smoothing and insurance, and loss aversion in household behavior.
+
+\paragraph{Production-side costs of informality.}
+Recent structural work has made substantial progress quantifying the production-side welfare costs of informality. \cite{imbert_ulyssea_2024} show that rural-urban migration in Brazil reduces informality through firm dynamics---the informal sector serves as a ``stepping stone'' to formality, with stricter enforcement amplifying the productivity benefits. Their shift-share instrumental variable design demonstrates that immigration increases formal firm entry, raises aggregate output, but compresses wages in both sectors. \cite{dix-carneiro_etal_2024} demonstrate that trade liberalization reallocates resources from informal to formal firms, improving aggregate TFP by reducing misallocation. \cite{ulyssea_2018} structurally estimates that eliminating informality in Brazil would raise output by 4\% but reduce employment, highlighting the complex tradeoffs.
+
+Yet these production-side analyses are silent on a distinct welfare channel: the household's ability to smooth consumption over income fluctuations. If informal workers face excess consumption risk due to exclusion from formal credit and insurance markets, this constitutes an additional welfare cost invisible to firm-level analyses. \textbf{This paper fills that gap.}
+
+\paragraph{Consumption smoothing and informality.}
+The consumption smoothing literature, following \cite{blundell_pistaferri_preston_2008}, has documented substantial insurance against transitory income shocks in developed economies, with pass-through coefficients ($\phi$) around 0.05--0.10. Studies in developing countries find less complete insurance \citep{townsend_1994, kinnan_2024}, but have not systematically examined heterogeneity by formal employment status.
+
+A parallel literature documents that informal workers face credit constraints. \cite{malkova_peter_2024} show that credit market access in Russia incentivizes informal-to-formal transitions, with a one-standard-deviation improvement in credit accessibility increasing switching probability by 5.4 percentage points. However, this work focuses on transition dynamics rather than welfare costs of remaining informal.
+
+We bridge these literatures by estimating how informality affects the \textit{asymmetric} ability to smooth positive versus negative income shocks, and translating this into welfare-equivalent consumption losses.
+
+\paragraph{Asymmetric responses and loss aversion.}
+Our finding that informal workers face impaired smoothing of negative shocks---but not positive shocks---connects to the behavioral economics literature on loss aversion \citep{kahneman_tversky_1979, koszegi_rabin_2006}. While loss aversion is typically studied in laboratory settings or asset markets \citep{barberis_huang_santos_2001}, we provide field evidence from consumption data consistent with reference-dependent preferences.
+
+This asymmetry has important welfare implications. Under standard CRRA preferences, symmetric smoothing failures would yield a welfare cost of approximately 2.3\% of permanent consumption. Incorporating loss aversion ($\lambda \approx 2.2$) raises this to 2.8\%---a 20\% increase in the welfare cost of informality.
+
+\paragraph{Contribution.}
+Our contribution is threefold. First, we provide the first systematic evidence on \textit{household-side} welfare costs of informality, complementing the production-side literature. Second, we document a novel asymmetry: informal workers smooth positive shocks as well as formal workers, but face a substantial penalty on negative shocks ($\delta^- = 0.07$, highly significant). Third, we show this asymmetry is robust to concerns about selection (entropy balancing), habit formation, and alternative identification strategies (regression kink design, permutation tests).
+
+Table \ref{tab:lit_comparison} positions our findings relative to the production-side literature:
+
+\begin{table}[htbp]
+\centering
+\caption{Production-Side vs. Household-Side Welfare Costs of Informality}
+\label{tab:lit_comparison}
+\begin{tabular}{lcc}
+\toprule
+Dimension & Production-Side & Household-Side \\
+ & (Imbert \& Ulyssea; Dix-Carneiro et al.) & (This Paper) \\
+\midrule
+Welfare channel & Aggregate productivity/misallocation & Consumption risk \\
+Key finding & Informality is stepping stone & Even temporary informality costly \\
+ & (net positive short-run) & via excess consumption volatility \\
+Policy implication & Stronger enforcement $\to$ & Better insurance/credit $\to$ \\
+ & more formalization $\to$ higher output & less consumption volatility \\
+Asymmetry & Not examined & Loss aversion amplifies cost \\
+ & & by $\sim$20\% \\
+Unit of analysis & Firms/municipalities & Households/individuals \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Together, these findings suggest that the full welfare cost of informality exceeds what either firm-level or household-level analysis alone would indicate. Production-side inefficiencies and household-side insurance failures are \textit{additive} welfare costs, pointing toward policies that address both margins---enforcement to encourage formalization (as in Imbert \& Ulyssea) and credit market expansion to improve insurance even during informal spells.
+
+%===============================================================================
+% REFERENCES TO ADD
+%===============================================================================
+% @article{imbert_ulyssea_2024,
+%   title={Rural Migrants and Urban Informality: Evidence from Brazil},
+%   author={Imbert, Cl{\'e}ment and Ulyssea, Gabriel},
+%   journal={Econometrica},
+%   year={forthcoming}
+% }
+%
+% @article{dix-carneiro_etal_2024,
+%   title={Trade and Informality in the Presence of Labor Market Frictions and Regulations},
+%   author={Dix-Carneiro, Rafael and Goldberg, Pinelopi and Meghir, Costas and Ulyssea, Gabriel},
+%   journal={Econometrica},
+%   year={forthcoming}
+% }

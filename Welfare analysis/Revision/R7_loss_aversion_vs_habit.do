@@ -21,8 +21,15 @@ clear all
 set more off
 capture log close
 
-* Load globals
-quietly do "${dodir}/welfare_globals.do"
+* Set globals directly (for batch mode compatibility)
+global base "/Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTechnology/_Research/Credit_Market/Credit market (1)"
+global welfare "${base}/Welfare analysis"
+global dodir "${welfare}/Do files"
+global data "${welfare}/Data"
+global results "${welfare}/Results"
+global tables "${welfare}/Tables"
+global figures "${welfare}/Figures"
+global logdir "${welfare}/Logs"
 
 * Start log
 log using "${logdir}/R7_loss_aversion_habit.log", replace text
@@ -73,6 +80,7 @@ di as text    "=============================================="
 sort idind year
 
 * Lagged consumption levels and changes
+capture drop L_lnc L2_lnc L_dlnc L2_dlnc
 by idind: gen L_lnc = lnc[_n-1]
 by idind: gen L2_lnc = lnc[_n-2]
 by idind: gen L_dlnc = dlnc[_n-1]
@@ -84,12 +92,14 @@ label variable L_dlnc "Lagged Δln(C)"
 label variable L2_dlnc "Twice-lagged Δln(C)"
 
 * Lagged income changes (for Δln(Y) persistence)
+capture drop L_dlny L2_dlny
 by idind: gen L_dlny = dlny_lab[_n-1]
 by idind: gen L2_dlny = dlny_lab[_n-2]
 label variable L_dlny "Lagged Δln(Y)"
 label variable L2_dlny "Twice-lagged Δln(Y)"
 
 * Sample with lags
+capture drop habit_sample
 gen byte habit_sample = !missing(dlnc, dlny_pos, dlny_neg, informal, L_dlnc)
 count if habit_sample == 1
 local N_habit = r(N)

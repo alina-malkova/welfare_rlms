@@ -19,8 +19,15 @@ clear all
 set more off
 capture log close
 
-* Load globals
-quietly do "${dodir}/welfare_globals.do"
+* Set globals directly (for batch mode compatibility)
+global base "/Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTechnology/_Research/Credit_Market/Credit market (1)"
+global welfare "${base}/Welfare analysis"
+global dodir "${welfare}/Do files"
+global data "${welfare}/Data"
+global results "${welfare}/Results"
+global tables "${welfare}/Tables"
+global figures "${welfare}/Figures"
+global logdir "${welfare}/Logs"
 
 * Start log
 log using "${logdir}/R5_event_study.log", replace text
@@ -290,12 +297,13 @@ di as text    "=============================================="
 
 * For period 0 (impact effect), compare estimates
 * Extract from CSDID
-capture quietly csdid consumption $X_controls, ivar(idind) time(year) gvar(gvar) agg(event)
+estimates restore csdid_full
 matrix CSDID_b = e(b)
 local csdid_t0 = CSDID_b[1, 1]  // First element is typically t=0
 
-* From traditional
-local trad_t0 = _b[e_0] if _b[e_0] != .
+* From traditional - restore saved estimates first
+estimates restore trad_event_study
+local trad_t0 = _b[e_0]
 
 di as text "Impact Effect (t = 0) Comparison:"
 di as text "  CSDID estimate:       (see event study plot)"
@@ -318,6 +326,13 @@ esttab csdid_full trad_event_study triple_diff ///
     label booktabs
 
 * Export summary statistics
+* First, re-extract triple-diff coefficients from stored estimates
+estimates restore triple_diff
+local triple_coef = _b[c.treated#c.informal_at_shock#c.post_shock]
+local triple_se = _se[c.treated#c.informal_at_shock#c.post_shock]
+local triple_t = `triple_coef' / `triple_se'
+local triple_p = 2 * (1 - normal(abs(`triple_t')))
+
 preserve
     clear
     set obs 3
@@ -327,6 +342,7 @@ preserve
     gen p_value = .
 
     replace model = "CSDID (full)" in 1
+    replace estimate = `csdid_t0' in 1
 
     replace model = "Traditional (t=0)" in 2
     replace estimate = `trad_t0' in 2
