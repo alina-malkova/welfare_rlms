@@ -155,6 +155,136 @@ Located in `Revision/` subfolder.
 - Converts "we picked eta to get lambda = 2.25" into
 - "lambda in [1.8, 3.0] for any reasonable eta" (far more credible)
 
+---
+
+## JEEA Revision Materials (February 2026)
+
+### Priority Tests for JEEA Submission
+
+| Priority | Test | File | Status |
+|----------|------|------|--------|
+| 1 | Exposed formal workers | `R11_exposed_formal_workers.do` | Ready |
+| 2 | GMM estimation of λ and η | `R13_gmm_lambda_eta.do` | Ready |
+| 3 | Asymmetric BPP by shock sign | `R12_asymmetric_bpp.do` | Ready |
+| 4 | Reference point dynamics | `R16_reference_point_dynamics.do` | Ready |
+| 5 | Causal Forest heterogeneity | `R14_causal_forest.R` | Ready |
+| 6 | Double ML robustness | `R15_double_ml.R` | Ready |
+
+### R11: Exposed Formal Workers Test (Validates Core Model)
+
+**Problem:** Model claims formal workers have same λ but institutions mask it.
+
+**Test:** Find "exposed" formal workers lacking insurance:
+- Temporary/fixed-term contracts (no severance)
+- Workers in firms with wage arrears
+- Short tenure (< 12 months)
+
+**Prediction:**
+- If model correct: Exposed formal δ⁻ > 0 (similar to informal)
+- If model wrong: Exposed formal δ⁻ ≈ 0 (type hypothesis)
+
+**Output:** `Tables/R11_exposed_formal.tex`, `R11_exposed_formal_summary.csv`
+
+### R12: Asymmetric BPP by Shock Sign (Novel Methodological Contribution)
+
+**Novel contribution:** Four-way BPP decomposition:
+- Permanent × Positive/Negative
+- Transitory × Positive/Negative
+- Formal vs Informal
+
+**Prediction:**
+- φ⁻_I ≫ φ⁻_F (informal penalty on negative transitory)
+- φ⁺_I ≈ φ⁺_F (no difference on positive transitory)
+
+**Method:**
+```
+Permanent shock proxy: ζ_t ≈ (Δy_t + Δy_{t+1})/2
+Transitory shock: v_t = Δy_t - ζ_t
+```
+
+**Output:** `Tables/R12_asymmetric_bpp.tex`, `Figures/R12_fourway_bpp.png`
+
+### R13: GMM Estimation of λ and η (Replaces Ad Hoc Calibration)
+
+**Problem:** Current approach assumes η = 0.5 to get λ = 2.25.
+
+**Solution:** Joint GMM estimation using moment conditions:
+- m₁: R_I = λ^(1/η) where R_I = |β⁻_I|/|β⁺_I|
+- m₂: R_F ≈ 1 (formal symmetry as overidentifying restriction)
+
+**Identification:**
+- λ = R_I^η (given η)
+- Partial ID: λ ∈ [R_I^1.0, R_I^0.5] for η ∈ [0.5, 1]
+
+**Output:** `Tables/R13_gmm_lambda_eta.tex`, `R13_lambda_eta_grid.csv`
+
+### R14: Causal Forest for Heterogeneity (ML Method)
+
+**Purpose:** Replace manual subgroup analysis with principled ML approach.
+
+**Method:** Generalized Random Forest (Athey, Tibshirani & Wager, 2019)
+- Estimates CATE: δ⁻(X_i) = E[Y | T=1, X] - E[Y | T=0, X]
+- Treatment: Informal × 1[ΔlnY < 0]
+- Discovers interactions without pre-specification
+
+**Output:**
+- Variable importance rankings
+- Best linear projection onto covariates
+- Policy targeting tree
+- `Tables/R14_causal_forest_summary.csv`
+- `Figures/R14_cate_distribution.png`
+
+**R Package:** `grf`, `policytree`
+
+### R15: Double ML Robustness (Functional Form)
+
+**Purpose:** Test robustness to control function specification.
+
+**Method:** Chernozhukov et al. (2018) Double ML
+- Use LASSO/RF to flexibly estimate nuisance parameters
+- Cross-fitting for valid inference
+- If DML ≈ OLS: robust to functional form
+
+**Specification:**
+```
+ΔlnC = α + δ⁻(ΔlnY⁻ × Informal) + g(X) + ε
+```
+
+**Output:** `Tables/R15_dml_comparison.csv`, `R15_dml_summary.csv`
+
+**R Package:** `DoubleML`, `mlr3`
+
+### R16: Reference Point Dynamics (K-R Model Test)
+
+**Test:** Do reference points adapt slowly or quickly after formality transitions?
+
+**Method:** Estimate δ⁻(k) for k = 0, 1, 2, 3+ years since becoming informal
+
+**Predictions:**
+- **Slow adaptation:** δ⁻(k=0) > δ⁻(k=3+) — reference still calibrated to formal consumption
+- **Fast adaptation:** δ⁻(k=0) ≈ δ⁻(k=3+) — penalty immediate and stable
+
+**Output:** `Tables/R16_reference_dynamics.tex`, `Figures/R16_reference_dynamics.png`
+
+---
+
+### Existing Revision Files (R1-R10)
+
+| File | Description |
+|------|-------------|
+| R1 | Partial identification bounds for λ |
+| R2 | Quantile regression (asymmetric effects) |
+| R3 | Correlated random effects model |
+| R4 | Permutation test for inference |
+| R5 | Callaway-Sant'Anna event study |
+| R6 | BPP decomposition (perm/trans) |
+| R7 | Loss aversion vs habit formation |
+| R8 | Regression kink design |
+| R9 | Entropy balancing |
+| R10 | Multiple hypothesis testing correction |
+
+---
+
 ## Related Project
 Parent project: **Labor Informality and Credit Market** (under revision at *Journal of Comparative Economics*)
 See `../CLAUDE.md` for full project documentation.

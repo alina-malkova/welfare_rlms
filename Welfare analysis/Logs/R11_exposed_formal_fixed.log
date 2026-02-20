@@ -1,0 +1,743 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTe
+> chnology/_Research/Credit_Market/Credit market (1)/Welfare analysis/Logs/R11_
+> exposed_formal_fixed.log
+  log type:  text
+ opened on:  19 Feb 2026, 15:13:43
+
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  R11: Exposed Formal Workers Test (Fixed)"
+  R11: Exposed Formal Workers Test (Fixed)
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Load data
+. use "Data/welfare_panel_shocks.dta", clear
+(Welfare analysis - shocks and informality (Step W3))
+
+. keep if analysis_sample == 1
+(14,139 observations deleted)
+
+. xtset idind year
+
+Panel variable: idind (unbalanced)
+ Time variable: year, 2006 to 2023, but with gaps
+         Delta: 1 year
+
+. 
+. * ===========================================================================
+> ==
+. * 1. IDENTIFY EXPOSED FORMAL WORKERS
+. * ===========================================================================
+> ==
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  1. Identify Exposed Formal Workers"
+  1. Identify Exposed Formal Workers
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Check j14 (wage arrears)
+. di as text "j14: Owed money by workplace?"
+j14: Owed money by workplace?
+
+. tab j14, missing
+
+    Owed money by |
+workplace?--job 1 |      Freq.     Percent        Cum.
+------------------+-----------------------------------
+              Yes |      4,517        2.52        2.52
+               No |    117,159       65.40       67.92
+    DOES NOT KNOW |        286        0.16       68.08
+REFUSES TO ANSWER |         37        0.02       68.10
+        NO ANSWER |        298        0.17       68.27
+                . |     56,837       31.73      100.00
+------------------+-----------------------------------
+            Total |    179,134      100.00
+
+. 
+. * Create exposed indicator using j14 = 1 (yes, owed money)
+. * j14 coding: 1=yes, 2=no typically in RLMS
+. gen byte exposed_arrears = (j14 == 1) if informal == 0 & !missing(j14)
+(73,590 missing values generated)
+
+. replace exposed_arrears = 0 if missing(exposed_arrears) & informal == 0
+(4,376 real changes made)
+
+. 
+. label variable exposed_arrears "Workplace owes wages (j14)"
+
+. 
+. * Also use shock_arrears if available
+. capture confirm variable shock_arrears
+
+. if _rc == 0 {
+.     gen byte exposed_shock = (shock_arrears == 1) if informal == 0
+(69,214 missing values generated)
+.     replace exposed_shock = 0 if missing(exposed_shock) & informal == 0
+(0 real changes made)
+.     label variable exposed_shock "New wage arrears shock"
+. }
+
+. 
+. * Combined exposure
+. gen byte exposed_any = exposed_arrears
+(69,214 missing values generated)
+
+. capture replace exposed_any = 1 if exposed_shock == 1
+
+. 
+. label variable exposed_any "Any exposure (arrears)"
+
+. 
+. * Summary
+. tab informal exposed_any if !missing(informal), missing
+
+  Informal |
+    worker |
+ (combined |
+definition |      Any exposure (arrears)
+         ) |         0          1          . |     Total
+-----------+---------------------------------+----------
+    Formal |   106,403      3,517          0 |   109,920 
+  Informal |         0          0     63,410 |    63,410 
+-----------+---------------------------------+----------
+     Total |   106,403      3,517     63,410 |   173,330 
+
+. 
+. count if informal == 0 & exposed_any == 0
+  106,403
+
+. local N_protected = r(N)
+
+. count if informal == 0 & exposed_any == 1
+  3,517
+
+. local N_exposed = r(N)
+
+. count if informal == 1
+  63,410
+
+. local N_informal = r(N)
+
+. 
+. di as text _n "Sample sizes:"
+
+Sample sizes:
+
+. di as text "  Protected formal: `N_protected'"
+  Protected formal: 106403
+
+. di as text "  Exposed formal:   `N_exposed'"
+  Exposed formal:   3517
+
+. di as text "  Informal:         `N_informal'"
+  Informal:         63410
+
+. 
+. * ===========================================================================
+> ==
+. * 2. ASYMMETRIC SMOOTHING BY WORKER TYPE
+. * ===========================================================================
+> ==
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  2. Estimate Asymmetric Smoothing"
+  2. Estimate Asymmetric Smoothing
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Ensure asymmetric shocks exist
+. capture confirm variable dlny_pos
+
+. if _rc != 0 {
+.     gen dlny_pos = max(dlny_lab, 0)
+.     gen dlny_neg = min(dlny_lab, 0)
+. }
+
+. 
+. * Controls
+. global X_controls "age age2 i.female i.married hh_size n_children i.urban i.y
+> ear"
+
+. 
+. * --- (A) Protected formal only ---
+. di as text _n "--- Protected Formal Workers ---"
+
+--- Protected Formal Workers ---
+
+. reghdfe dlnc dlny_pos dlny_neg $X_controls ///
+>     if informal == 0 & exposed_any == 0, ///
+>     absorb(idind) vce(cluster idind)
+(dropped 4212 singleton observations)
+note: 1bn.female is probably collinear with the fixed effects (all partialled-o
+> ut values are close to zero; tol = 1.0e-09)
+(MWFE estimator converged in 1 iterations)
+warning: missing F statistic; dropped variables due to collinearity or too few 
+> clusters
+note: 1.female omitted because of collinearity
+note: n_children omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =     85,198
+Absorbing 1 HDFE group                            F(  24,  13946) =          .
+Statistics robust to heteroskedasticity           Prob > F        =          .
+                                                  R-squared       =     0.1125
+                                                  Adj R-squared   =    -0.0616
+                                                  Within R-sq.    =     0.0294
+Number of clusters (idind)   =     13,947         Root MSE        =     0.3645
+
+                             (Std. err. adjusted for 13,947 clusters in idind)
+------------------------------------------------------------------------------
+             |               Robust
+        dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    dlny_pos |   .1092773   .0069809    15.65   0.000     .0955937    .1229608
+    dlny_neg |   .1413904    .009141    15.47   0.000     .1234727     .159308
+         age |  -.0016505   .0054948    -0.30   0.764     -.012421    .0091201
+        age2 |   .0001135   .0000167     6.78   0.000     .0000807    .0001463
+             |
+      female |
+     Female  |          0  (omitted)
+   1.married |    .020484   .0064347     3.18   0.001     .0078712    .0330969
+     hh_size |  -.0440625   .0022718   -19.40   0.000    -.0485156   -.0396094
+  n_children |          0  (omitted)
+     1.urban |  -.5540342   .0059511   -93.10   0.000    -.5656992   -.5423692
+             |
+        year |
+       2007  |   .0126083   .0120533     1.05   0.296    -.0110177    .0362343
+       2008  |  -.0116306   .0145418    -0.80   0.424    -.0401344    .0168732
+       2009  |  -.1307573   .0190692    -6.86   0.000    -.1681355    -.093379
+       2010  |  -.0186918   .0237824    -0.79   0.432    -.0653086    .0279249
+       2011  |  -.0692725   .0287186    -2.41   0.016    -.1255649   -.0129802
+       2012  |  -.0693584   .0335702    -2.07   0.039    -.1351604   -.0035564
+       2013  |  -.0747896   .0388394    -1.93   0.054      -.15092    .0013407
+       2014  |  -.0936913   .0441099    -2.12   0.034    -.1801527   -.0072299
+       2015  |  -.1857035   .0493718    -3.76   0.000    -.2824788   -.0889282
+       2016  |  -.1479539   .0545158    -2.71   0.007    -.2548122   -.0410957
+       2017  |  -.1404043   .0596764    -2.35   0.019     -.257378   -.0234306
+       2018  |   -.129189   .0650416    -1.99   0.047    -.2566792   -.0016988
+       2019  |  -.1511242   .0703005    -2.15   0.032    -.2889226   -.0133257
+       2020  |  -.1299258   .0756812    -1.72   0.086    -.2782712    .0184195
+       2021  |  -.1249887   .0808088    -1.55   0.122    -.2833848    .0334074
+       2022  |  -.1898449   .0862426    -2.20   0.028     -.358892   -.0207977
+       2023  |  -.1611353   .0915839    -1.76   0.079    -.3406521    .0183814
+             |
+       _cons |   .4085914   .1680291     2.43   0.015     .0792318     .737951
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |     13947       13947           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+. local beta_pos_prot = _b[dlny_pos]
+
+. local beta_neg_prot = _b[dlny_neg]
+
+. local se_pos_prot = _se[dlny_pos]
+
+. local se_neg_prot = _se[dlny_neg]
+
+. 
+. test dlny_pos = dlny_neg
+
+ ( 1)  dlny_pos - dlny_neg = 0
+
+       F(  1, 13946) =    6.18
+            Prob > F =    0.0129
+
+. local p_asym_prot = r(p)
+
+. 
+. di as text "  β⁺ = " %6.4f `beta_pos_prot' " (SE " %5.4f `se_pos_prot' ")"
+  β⁺ = 0.1093 (SE 0.0070)
+
+. di as text "  β⁻ = " %6.4f `beta_neg_prot' " (SE " %5.4f `se_neg_prot' ")"
+  β⁻ = 0.1414 (SE 0.0091)
+
+. di as text "  Asymmetry test p = " %5.3f `p_asym_prot'
+  Asymmetry test p = 0.013
+
+. 
+. * --- (B) Exposed formal only ---
+. di as text _n "--- Exposed Formal Workers (Wage Arrears) ---"
+
+--- Exposed Formal Workers (Wage Arrears) ---
+
+. reghdfe dlnc dlny_pos dlny_neg $X_controls ///
+>     if informal == 0 & exposed_any == 1, ///
+>     absorb(idind) vce(cluster idind)
+(dropped 1444 singleton observations)
+note: 1bn.female is probably collinear with the fixed effects (all partialled-o
+> ut values are close to zero; tol = 1.0e-09)
+note: 1bn.urban is probably collinear with the fixed effects (all partialled-ou
+> t values are close to zero; tol = 1.0e-09)
+(MWFE estimator converged in 1 iterations)
+note: 1.female omitted because of collinearity
+note: n_children omitted because of collinearity
+note: 1.urban omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =      1,352
+Absorbing 1 HDFE group                            F(  23,    505) =       2.59
+Statistics robust to heteroskedasticity           Prob > F        =     0.0001
+                                                  R-squared       =     0.3069
+                                                  Adj R-squared   =    -0.1378
+                                                  Within R-sq.    =     0.0514
+Number of clusters (idind)   =        506         Root MSE        =     0.4440
+
+                                (Std. err. adjusted for 506 clusters in idind)
+------------------------------------------------------------------------------
+             |               Robust
+        dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    dlny_pos |   .1292444   .0732901     1.76   0.078    -.0147467    .2732355
+    dlny_neg |   .1709493   .0673512     2.54   0.011     .0386262    .3032723
+         age |    .057737   .0431516     1.34   0.181    -.0270419    .1425158
+        age2 |   .0002874   .0003121     0.92   0.358    -.0003257    .0009005
+             |
+      female |
+     Female  |          0  (omitted)
+   1.married |   .0751515   .1025072     0.73   0.464    -.1262415    .2765445
+     hh_size |  -.0923809   .0347833    -2.66   0.008    -.1607188   -.0240431
+  n_children |          0  (omitted)
+     1.urban |          0  (omitted)
+             |
+        year |
+       2007  |  -.0931402   .0684848    -1.36   0.174    -.2276904    .0414099
+       2008  |  -.2188185   .0970328    -2.26   0.025    -.4094562   -.0281808
+       2009  |  -.3449447   .1235575    -2.79   0.005    -.5876949   -.1021946
+       2010  |  -.2743696   .1583746    -1.73   0.084    -.5855239    .0367847
+       2011  |  -.3824232   .1811917    -2.11   0.035    -.7384056   -.0264408
+       2012  |  -.4432419   .2125858    -2.09   0.038    -.8609034   -.0255804
+       2013  |  -.5461061   .2529933    -2.16   0.031    -1.043155   -.0490571
+       2014  |  -.6058819   .2900563    -2.09   0.037    -1.175748   -.0360162
+       2015  |  -.9109908   .3240625    -2.81   0.005    -1.547668   -.2743141
+       2016  |  -.8415936   .3534868    -2.38   0.018    -1.536079   -.1471078
+       2017  |  -1.109993   .3883449    -2.86   0.004    -1.872963   -.3470218
+       2018  |  -1.081847   .4236834    -2.55   0.011    -1.914246   -.2494475
+       2019  |  -.9841977   .4659867    -2.11   0.035    -1.899709   -.0686863
+       2020  |  -1.067489   .4908405    -2.17   0.030     -2.03183   -.1031486
+       2021  |  -1.188012   .5281266    -2.25   0.025    -2.225608   -.1504165
+       2022  |  -1.174759   .5711872    -2.06   0.040    -2.296955   -.0525632
+       2023  |  -1.508771   .6045863    -2.50   0.013    -2.696585   -.3209564
+             |
+       _cons |  -2.264163   1.328842    -1.70   0.089    -4.874902     .346576
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |       506         506           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+. local beta_pos_exp = _b[dlny_pos]
+
+. local beta_neg_exp = _b[dlny_neg]
+
+. local se_pos_exp = _se[dlny_pos]
+
+. local se_neg_exp = _se[dlny_neg]
+
+. 
+. test dlny_pos = dlny_neg
+
+ ( 1)  dlny_pos - dlny_neg = 0
+
+       F(  1,   505) =    0.14
+            Prob > F =    0.7084
+
+. local p_asym_exp = r(p)
+
+. 
+. di as text "  β⁺ = " %6.4f `beta_pos_exp' " (SE " %5.4f `se_pos_exp' ")"
+  β⁺ = 0.1292 (SE 0.0733)
+
+. di as text "  β⁻ = " %6.4f `beta_neg_exp' " (SE " %5.4f `se_neg_exp' ")"
+  β⁻ = 0.1709 (SE 0.0674)
+
+. di as text "  Asymmetry test p = " %5.3f `p_asym_exp'
+  Asymmetry test p = 0.708
+
+. 
+. * --- (C) Informal only ---
+. di as text _n "--- Informal Workers ---"
+
+--- Informal Workers ---
+
+. reghdfe dlnc dlny_pos dlny_neg $X_controls ///
+>     if informal == 1, ///
+>     absorb(idind) vce(cluster idind)
+(dropped 4704 singleton observations)
+note: 1bn.female is probably collinear with the fixed effects (all partialled-o
+> ut values are close to zero; tol = 1.0e-09)
+note: 1bn.urban is probably collinear with the fixed effects (all partialled-ou
+> t values are close to zero; tol = 1.0e-09)
+(MWFE estimator converged in 1 iterations)
+note: 1.female omitted because of collinearity
+note: n_children omitted because of collinearity
+note: 1.urban omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =     45,835
+Absorbing 1 HDFE group                            F(  23,   9474) =      30.69
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.1287
+                                                  Adj R-squared   =    -0.0991
+                                                  Within R-sq.    =     0.0183
+Number of clusters (idind)   =      9,475         Root MSE        =     0.4065
+
+                              (Std. err. adjusted for 9,475 clusters in idind)
+------------------------------------------------------------------------------
+             |               Robust
+        dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    dlny_pos |   .1100982   .0146283     7.53   0.000     .0814235    .1387729
+    dlny_neg |   .1762531   .0188298     9.36   0.000     .1393426    .2131637
+         age |  -.0058007   .0077831    -0.75   0.456    -.0210572    .0094558
+        age2 |   .0000565   .0000267     2.11   0.035     4.10e-06    .0001089
+             |
+      female |
+     Female  |          0  (omitted)
+   1.married |   .0195045   .0096489     2.02   0.043     .0005905    .0384184
+     hh_size |  -.0412902   .0033858   -12.19   0.000    -.0479272   -.0346532
+  n_children |          0  (omitted)
+     1.urban |          0  (omitted)
+             |
+        year |
+       2007  |   .0314558   .0199858     1.57   0.116    -.0077206    .0706322
+       2008  |   .0337094   .0229369     1.47   0.142    -.0112517    .0786706
+       2009  |  -.1109331   .0281346    -3.94   0.000    -.1660829   -.0557834
+       2010  |  -.0021269   .0348713    -0.06   0.951     -.070482    .0662283
+       2011  |  -.0125679   .0414028    -0.30   0.761    -.0937262    .0685905
+       2012  |  -.0021741   .0481775    -0.05   0.964    -.0966122    .0922641
+       2013  |  -.0369715   .0553621    -0.67   0.504    -.1454931    .0715502
+       2014  |  -.0102075   .0629577    -0.16   0.871    -.1336181    .1132032
+       2015  |  -.1137591   .0705484    -1.61   0.107    -.2520492    .0245309
+       2016  |  -.0560252   .0775822    -0.72   0.470    -.2081028    .0960525
+       2017  |  -.0378109   .0850161    -0.44   0.657    -.2044607     .128839
+       2018  |  -.0372204    .092509    -0.40   0.687    -.2185579    .1441171
+       2019  |  -.0342587   .1000703    -0.34   0.732    -.2304179    .1619006
+       2020  |  -.0164939   .1072613    -0.15   0.878     -.226749    .1937612
+       2021  |   .0024488   .1151735     0.02   0.983    -.2233161    .2282136
+       2022  |  -.0241784   .1226991    -0.20   0.844    -.2646949    .2163381
+       2023  |   -.022472   .1303254    -0.17   0.863    -.2779377    .2329937
+             |
+       _cons |   .2668799   .2394026     1.11   0.265    -.2024005    .7361604
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |      9475        9475           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+. local beta_pos_inf = _b[dlny_pos]
+
+. local beta_neg_inf = _b[dlny_neg]
+
+. local se_pos_inf = _se[dlny_pos]
+
+. local se_neg_inf = _se[dlny_neg]
+
+. 
+. test dlny_pos = dlny_neg
+
+ ( 1)  dlny_pos - dlny_neg = 0
+
+       F(  1,  9474) =    6.21
+            Prob > F =    0.0127
+
+. local p_asym_inf = r(p)
+
+. 
+. di as text "  β⁺ = " %6.4f `beta_pos_inf' " (SE " %5.4f `se_pos_inf' ")"
+  β⁺ = 0.1101 (SE 0.0146)
+
+. di as text "  β⁻ = " %6.4f `beta_neg_inf' " (SE " %5.4f `se_neg_inf' ")"
+  β⁻ = 0.1763 (SE 0.0188)
+
+. di as text "  Asymmetry test p = " %5.3f `p_asym_inf'
+  Asymmetry test p = 0.013
+
+. 
+. * ===========================================================================
+> ==
+. * 3. MODEL VALIDATION
+. * ===========================================================================
+> ==
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  3. MODEL VALIDATION SUMMARY"
+  3. MODEL VALIDATION SUMMARY
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. di as text _n "MODEL PREDICTION:"
+
+MODEL PREDICTION:
+
+. di as text "  If institutional coverage masks loss aversion:"
+  If institutional coverage masks loss aversion:
+
+. di as text "    - Protected formal: symmetric (β⁺ ≈ β⁻)"
+    - Protected formal: symmetric (β⁺ ≈ β⁻)
+
+. di as text "    - Exposed formal:   asymmetric (β⁻ > β⁺), like informal"
+    - Exposed formal:   asymmetric (β⁻ > β⁺), like informal
+
+. di as text "    - Informal:         asymmetric (β⁻ > β⁺)"
+    - Informal:         asymmetric (β⁻ > β⁺)
+
+. di as text ""
+
+
+. di as text "  If asymmetry is about worker types (not institutions):"
+  If asymmetry is about worker types (not institutions):
+
+. di as text "    - Protected formal: symmetric"
+    - Protected formal: symmetric
+
+. di as text "    - Exposed formal:   symmetric (same type as protected)"
+    - Exposed formal:   symmetric (same type as protected)
+
+. di as text "    - Informal:         asymmetric (different type)"
+    - Informal:         asymmetric (different type)
+
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  EMPIRICAL RESULTS"
+  EMPIRICAL RESULTS
+
+. di as text    "=============================================="
+==============================================
+
+. di as text "                        β⁺         β⁻       Asymmetry p    N"
+                        β⁺         β⁻       Asymmetry p    N
+
+. di as text "  Protected formal:  " %6.4f `beta_pos_prot' "     " %6.4f `beta_
+> neg_prot' "        " %5.3f `p_asym_prot' "     " `N_protected'
+  Protected formal:  0.1093     0.1414        0.013     106403
+
+. di as text "  Exposed formal:    " %6.4f `beta_pos_exp' "     " %6.4f `beta_n
+> eg_exp' "        " %5.3f `p_asym_exp' "     " `N_exposed'
+  Exposed formal:    0.1292     0.1709        0.708     3517
+
+. di as text "  Informal:          " %6.4f `beta_pos_inf' "     " %6.4f `beta_n
+> eg_inf' "        " %5.3f `p_asym_inf' "     " `N_informal'
+  Informal:          0.1101     0.1763        0.013     63410
+
+. 
+. * Compute asymmetry magnitudes
+. local asym_prot = `beta_neg_prot' - `beta_pos_prot'
+
+. local asym_exp = `beta_neg_exp' - `beta_pos_exp'
+
+. local asym_inf = `beta_neg_inf' - `beta_pos_inf'
+
+. 
+. di as text _n "Asymmetry magnitude (β⁻ - β⁺):"
+
+Asymmetry magnitude (β⁻ - β⁺):
+
+. di as text "  Protected formal: " %6.4f `asym_prot'
+  Protected formal: 0.0321
+
+. di as text "  Exposed formal:   " %6.4f `asym_exp'
+  Exposed formal:   0.0417
+
+. di as text "  Informal:         " %6.4f `asym_inf'
+  Informal:         0.0662
+
+. 
+. * Verdict
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  VERDICT"
+  VERDICT
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. if `p_asym_exp' < 0.10 & abs(`asym_exp') > abs(`asym_prot') {
+.     di as text "  ✓ SUPPORTS MODEL: Exposed formal shows asymmetry"
+.     di as text "    (Wage arrears disrupt institutional insurance)"
+. }
+
+. else if `p_asym_exp' > 0.10 {
+.     di as text "  ⚠ REJECTS MODEL: Exposed formal shows no asymmetry"
+  ⚠ REJECTS MODEL: Exposed formal shows no asymmetry
+.     di as text "    (Asymmetry is about worker types, not institutions)"
+    (Asymmetry is about worker types, not institutions)
+. }
+
+. else {
+.     di as text "  ? INCONCLUSIVE"
+. }
+
+. 
+. * ===========================================================================
+> ==
+. * 4. EXPORT RESULTS
+. * ===========================================================================
+> ==
+. 
+. preserve
+
+.     clear
+
+.     set obs 3
+Number of observations (_N) was 0, now 3.
+
+.     gen worker_type = ""
+(3 missing values generated)
+
+.     gen beta_pos = .
+(3 missing values generated)
+
+.     gen se_pos = .
+(3 missing values generated)
+
+.     gen beta_neg = .
+(3 missing values generated)
+
+.     gen se_neg = .
+(3 missing values generated)
+
+.     gen p_asymmetry = .
+(3 missing values generated)
+
+.     gen N = .
+(3 missing values generated)
+
+.     gen asymmetry = .
+(3 missing values generated)
+
+. 
+.     replace worker_type = "Protected formal" in 1
+variable worker_type was str1 now str16
+(1 real change made)
+
+.     replace beta_pos = `beta_pos_prot' in 1
+(1 real change made)
+
+.     replace se_pos = `se_pos_prot' in 1
+(1 real change made)
+
+.     replace beta_neg = `beta_neg_prot' in 1
+(1 real change made)
+
+.     replace se_neg = `se_neg_prot' in 1
+(1 real change made)
+
+.     replace p_asymmetry = `p_asym_prot' in 1
+(1 real change made)
+
+.     replace N = `N_protected' in 1
+(1 real change made)
+
+.     replace asymmetry = `asym_prot' in 1
+(1 real change made)
+
+. 
+.     replace worker_type = "Exposed formal" in 2
+(1 real change made)
+
+.     replace beta_pos = `beta_pos_exp' in 2
+(1 real change made)
+
+.     replace se_pos = `se_pos_exp' in 2
+(1 real change made)
+
+.     replace beta_neg = `beta_neg_exp' in 2
+(1 real change made)
+
+.     replace se_neg = `se_neg_exp' in 2
+(1 real change made)
+
+.     replace p_asymmetry = `p_asym_exp' in 2
+(1 real change made)
+
+.     replace N = `N_exposed' in 2
+(1 real change made)
+
+.     replace asymmetry = `asym_exp' in 2
+(1 real change made)
+
+. 
+.     replace worker_type = "Informal" in 3
+(1 real change made)
+
+.     replace beta_pos = `beta_pos_inf' in 3
+(1 real change made)
+
+.     replace se_pos = `se_pos_inf' in 3
+(1 real change made)
+
+.     replace beta_neg = `beta_neg_inf' in 3
+(1 real change made)
+
+.     replace se_neg = `se_neg_inf' in 3
+(1 real change made)
+
+.     replace p_asymmetry = `p_asym_inf' in 3
+(1 real change made)
+
+.     replace N = `N_informal' in 3
+(1 real change made)
+
+.     replace asymmetry = `asym_inf' in 3
+(1 real change made)
+
+. 
+.     export delimited using "Tables/R11_exposed_formal_results.csv", replace
+(file Tables/R11_exposed_formal_results.csv not found)
+file Tables/R11_exposed_formal_results.csv saved
+
+. restore
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTe
+> chnology/_Research/Credit_Market/Credit market (1)/Welfare analysis/Logs/R11_
+> exposed_formal_fixed.log
+  log type:  text
+ closed on:  19 Feb 2026, 15:13:47
+-------------------------------------------------------------------------------
