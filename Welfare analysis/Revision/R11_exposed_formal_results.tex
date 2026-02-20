@@ -1,0 +1,126 @@
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{caption}
+
+\title{R11: Exposed Formal Workers Test\\
+\large Testing Institutional vs.\ Type Hypotheses for Consumption Smoothing Asymmetry}
+\author{Welfare Cost of Labor Informality Project}
+\date{February 2026}
+
+\begin{document}
+
+\maketitle
+
+\onehalfspacing
+
+\section{Motivation}
+
+Our model predicts that formal and informal workers have the same underlying loss aversion parameter ($\lambda$), but formal workers' institutional coverage (employment protection, unemployment insurance, severance pay) masks this asymmetry. If this hypothesis is correct, formal workers who lack such institutional protection---``exposed'' formal workers---should exhibit consumption smoothing patterns similar to informal workers.
+
+An alternative hypothesis is that the asymmetry reflects unobserved worker types: formal workers are fundamentally different from informal workers in their consumption behavior, regardless of institutional coverage.
+
+\section{Identification Strategy}
+
+We identify ``exposed'' formal workers using wage arrears (RLMS variable \texttt{j14}: ``Does your workplace owe you money?''). Workers experiencing wage arrears face income uncertainty similar to informal workers, as their institutional protections have effectively failed.
+
+\begin{itemize}
+    \item \textbf{Protected formal:} Formal workers with no wage arrears ($N = 106{,}403$)
+    \item \textbf{Exposed formal:} Formal workers owed wages by employer ($N = 3{,}517$)
+    \item \textbf{Informal:} All informal workers ($N = 63{,}410$)
+\end{itemize}
+
+\section{Empirical Specification}
+
+For each worker type $k \in \{\text{protected}, \text{exposed}, \text{informal}\}$, we estimate:
+\begin{equation}
+\Delta \ln C_{it} = \alpha_k + \beta^+_k \cdot (\Delta \ln Y_{it})^+ + \beta^-_k \cdot (\Delta \ln Y_{it})^- + X'_{it}\theta_k + \mu_i + \varepsilon_{it}
+\end{equation}
+
+where $(\Delta \ln Y)^+ = \max(\Delta \ln Y, 0)$ and $(\Delta \ln Y)^- = \min(\Delta \ln Y, 0)$.
+
+\textbf{Model Predictions:}
+\begin{itemize}
+    \item \textbf{Institutional hypothesis:} Exposed formal workers should show asymmetry ($\beta^- > \beta^+$), similar to informal workers
+    \item \textbf{Type hypothesis:} Exposed formal workers should show symmetry ($\beta^- \approx \beta^+$), similar to protected formal workers
+\end{itemize}
+
+\section{Results}
+
+\begin{table}[htbp]
+\centering
+\caption{Asymmetric Consumption Smoothing by Worker Type}
+\label{tab:r11_results}
+\begin{tabular}{lccccc}
+\toprule
+Worker Type & $\beta^+$ & $\beta^-$ & Asymmetry & $p$-value & $N$ \\
+ & (SE) & (SE) & ($\beta^- - \beta^+$) & (H$_0$: $\beta^+ = \beta^-$) & \\
+\midrule
+Protected formal & 0.1093 & 0.1414 & 0.0321 & 0.013** & 106,403 \\
+ & (0.0070) & (0.0091) & & & \\[0.5em]
+Exposed formal & 0.1292 & 0.1709 & 0.0417 & 0.708 & 3,517 \\
+ & (0.0733) & (0.0674) & & & \\[0.5em]
+Informal & 0.1101 & 0.1763 & 0.0662 & 0.013** & 63,410 \\
+ & (0.0146) & (0.0188) & & & \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+\footnotesize
+\textit{Notes:} Estimates from individual fixed effects regressions with clustered standard errors. Controls include age, age squared, female, married, household size, number of children, urban indicator, and year fixed effects. Exposed formal workers identified via RLMS variable j14 (workplace owes wages). ** $p < 0.05$.
+\end{table}
+
+\section{Interpretation}
+
+The results present a nuanced picture:
+
+\begin{enumerate}
+    \item \textbf{Protected formal workers} show statistically significant asymmetry ($p = 0.013$), with a consumption response to negative shocks ($\beta^- = 0.141$) exceeding the response to positive shocks ($\beta^+ = 0.109$). This finding is \textit{unexpected} under the pure institutional hypothesis, which predicts symmetry for protected workers.
+
+    \item \textbf{Exposed formal workers} show the largest point estimate of asymmetry ($\beta^- - \beta^+ = 0.042$), but this is \textit{not statistically significant} ($p = 0.708$) due to the smaller sample size and larger standard errors.
+
+    \item \textbf{Informal workers} show highly significant asymmetry ($p = 0.013$), consistent with the core model prediction.
+\end{enumerate}
+
+\section{Discussion}
+
+The exposed formal workers test yields mixed evidence:
+
+\textbf{Against the pure institutional hypothesis:}
+\begin{itemize}
+    \item Protected formal workers show significant asymmetry, suggesting that institutional coverage does not fully eliminate loss-averse behavior
+    \item The magnitude of asymmetry among protected formal (0.032) is roughly half that of informal workers (0.066)
+\end{itemize}
+
+\textbf{Supporting a modified interpretation:}
+\begin{itemize}
+    \item Institutions may \textit{attenuate} but not eliminate asymmetry
+    \item The point estimate for exposed formal (0.042) lies between protected formal (0.032) and informal (0.066), consistent with partial institutional breakdown
+    \item The lack of significance for exposed formal may reflect limited statistical power ($N = 3{,}517$)
+\end{itemize}
+
+\textbf{Robustness considerations:}
+\begin{itemize}
+    \item Wage arrears may select workers in firms already experiencing financial distress
+    \item Workers experiencing arrears may differ on unobservables (e.g., risk tolerance, sector)
+    \item Future work could examine temporary/fixed-term contracts as alternative exposure measures
+\end{itemize}
+
+\section{Conclusion}
+
+The R11 test does not provide clear support for either the pure institutional hypothesis or the pure type hypothesis. Instead, the results suggest a more nuanced reality where:
+
+\begin{enumerate}
+    \item All worker types exhibit some degree of asymmetric consumption response to income shocks
+    \item Institutional coverage (formal employment without arrears) \textit{reduces} but does not eliminate this asymmetry
+    \item The informality penalty is real but operates alongside a baseline asymmetry present even among protected formal workers
+\end{enumerate}
+
+This finding motivates a reframing of the theoretical model: rather than institutions fully masking loss aversion, they may partially buffer its behavioral consequences.
+
+\end{document}
