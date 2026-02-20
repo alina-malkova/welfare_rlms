@@ -1,0 +1,773 @@
+--------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTechnology/_Research/Credit
+> _Market/Credit market (1)/Welfare analysis/Logs/R12_asymmetric_bpp.log
+  log type:  text
+ opened on:  20 Feb 2026, 17:11:49
+
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  R12: Asymmetric BPP Decomposition"
+  R12: Asymmetric BPP Decomposition
+
+. di as text    "       (Four-way: perm/trans × pos/neg)"
+       (Four-way: perm/trans × pos/neg)
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Load data
+. capture use "Data/welfare_panel_cbr.dta", clear
+
+. if _rc != 0 {
+.     use "Data/welfare_panel_shocks.dta", clear
+. }
+
+. 
+. keep if analysis_sample == 1
+(14,139 observations deleted)
+
+. xtset idind year
+
+Panel variable: idind (unbalanced)
+ Time variable: year, 2006 to 2023, but with gaps
+         Delta: 1 year
+
+. 
+. di as text "Sample: N = " _N " observations"
+Sample: N = 179134 observations
+
+. tab informal, missing
+
+   Informal |
+     worker |
+  (combined |
+definition) |      Freq.     Percent        Cum.
+------------+-----------------------------------
+     Formal |    109,920       61.36       61.36
+   Informal |     63,410       35.40       96.76
+          . |      5,804        3.24      100.00
+------------+-----------------------------------
+      Total |    179,134      100.00
+
+. 
+. * =============================================================================
+. * 1. CONSTRUCT PERMANENT AND TRANSITORY SHOCKS
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  1. Construct Permanent/Transitory Shocks"
+  1. Construct Permanent/Transitory Shocks
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. sort idind year
+
+. 
+. * Leads and lags
+. by idind: gen dlny_lead1 = dlny_lab[_n+1]
+(90,600 missing values generated)
+
+. 
+. * BPP quasi-differencing: permanent = average of current and next
+. * If next period income change has same direction, more likely permanent
+. by idind: gen perm_shock_proxy = (dlny_lab + dlny_lead1) / 2 if !missing(dlny_lead1)
+(110,245 missing values generated)
+
+. by idind: gen trans_shock_proxy = dlny_lab - perm_shock_proxy
+(110,245 missing values generated)
+
+. 
+. label variable perm_shock_proxy "Permanent shock proxy (ζ)"
+
+. label variable trans_shock_proxy "Transitory shock proxy (v)"
+
+. 
+. * =============================================================================
+. * 2. DECOMPOSE INTO POSITIVE AND NEGATIVE
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  2. Decompose by Sign"
+  2. Decompose by Sign
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Four shock types
+. gen perm_pos = max(perm_shock_proxy, 0)
+
+. gen perm_neg = min(perm_shock_proxy, 0)
+
+. gen trans_pos = max(trans_shock_proxy, 0)
+
+. gen trans_neg = min(trans_shock_proxy, 0)
+
+. 
+. label variable perm_pos "Permanent positive shock (ζ⁺)"
+
+. label variable perm_neg "Permanent negative shock (ζ⁻)"
+
+. label variable trans_pos "Transitory positive shock (v⁺)"
+
+. label variable trans_neg "Transitory negative shock (v⁻)"
+
+. 
+. * Interactions with informality
+. gen perm_pos_x_inf = perm_pos * informal
+(5,804 missing values generated)
+
+. gen perm_neg_x_inf = perm_neg * informal
+(5,804 missing values generated)
+
+. gen trans_pos_x_inf = trans_pos * informal
+(5,804 missing values generated)
+
+. gen trans_neg_x_inf = trans_neg * informal
+(5,804 missing values generated)
+
+. 
+. * Summary
+. di as text _n "Summary of shock decomposition:"
+
+Summary of shock decomposition:
+
+. tabstat perm_pos perm_neg trans_pos trans_neg, by(informal) stats(mean sd n) format(%9.4f)
+
+Summary statistics: Mean, SD, N
+Group variable: informal (Informal worker (combined definition))
+
+informal |  perm_pos  perm_neg  trans_~s  trans_~g
+---------+----------------------------------------
+  Formal |    0.0496   -0.0297    0.0535   -0.0531
+         |    0.1109    0.0787    0.1283    0.1327
+         |  1.10e+05  1.10e+05  1.10e+05  1.10e+05
+---------+----------------------------------------
+Informal |    0.0178   -0.0124    0.0217   -0.0192
+         |    0.0718    0.0541    0.0880    0.0835
+         |  6.34e+04  6.34e+04  6.34e+04  6.34e+04
+---------+----------------------------------------
+   Total |    0.0380   -0.0233    0.0419   -0.0407
+         |    0.0996    0.0712    0.1162    0.1182
+         |  1.73e+05  1.73e+05  1.73e+05  1.73e+05
+--------------------------------------------------
+
+. 
+. * =============================================================================
+. * 3. ESTIMATE FOUR-WAY BPP MODEL
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  3. Four-Way BPP Estimation"
+  3. Four-Way BPP Estimation
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. gen byte bpp4_sample = !missing(dlnc, perm_pos, perm_neg, trans_pos, trans_neg)
+
+. count if bpp4_sample == 1
+  147,675
+
+. local N_bpp4 = r(N)
+
+. di as text "Four-way BPP sample: N = `N_bpp4'"
+Four-way BPP sample: N = 147675
+
+. 
+. global X_controls "age age2 i.female i.married hh_size n_children i.urban i.year"
+
+. 
+. eststo clear
+
+. 
+. * --- Formal workers only ---
+. di as text _n "--- Formal Workers ---"
+
+--- Formal Workers ---
+
+. eststo m_formal: reghdfe dlnc perm_pos perm_neg trans_pos trans_neg ///
+>     if bpp4_sample == 1 & informal == 0, ///
+>     absorb(idind) vce(cluster idind)
+(dropped 4180 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     88,111
+Absorbing 1 HDFE group                            F(   4,  14192) =     221.40
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.0951
+                                                  Adj R-squared   =    -0.0787
+                                                  Within R-sq.    =     0.0138
+Number of clusters (idind)   =     14,193         Root MSE        =     0.3693
+
+                             (Std. err. adjusted for 14,193 clusters in idind)
+------------------------------------------------------------------------------
+             |               Robust
+        dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    perm_pos |   .1143956   .0126526     9.04   0.000     .0895949    .1391963
+    perm_neg |   .2389941   .0167956    14.23   0.000     .2060725    .2719157
+   trans_pos |   .1392485   .0113249    12.30   0.000     .1170502    .1614468
+   trans_neg |   .1469529   .0104328    14.09   0.000     .1265032    .1674025
+       _cons |   .0234666   .0012441    18.86   0.000     .0210281    .0259051
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |     14193       14193           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+. local psi_pos_F = _b[perm_pos]
+
+. local psi_neg_F = _b[perm_neg]
+
+. local phi_pos_F = _b[trans_pos]
+
+. local phi_neg_F = _b[trans_neg]
+
+. local se_psi_pos_F = _se[perm_pos]
+
+. local se_psi_neg_F = _se[perm_neg]
+
+. local se_phi_pos_F = _se[trans_pos]
+
+. local se_phi_neg_F = _se[trans_neg]
+
+. local N_formal = e(N)
+
+. 
+. test perm_pos = perm_neg
+
+ ( 1)  perm_pos - perm_neg = 0
+
+       F(  1, 14192) =   25.77
+            Prob > F =    0.0000
+
+. local p_perm_asym_F = r(p)
+
+. test trans_pos = trans_neg
+
+ ( 1)  trans_pos - trans_neg = 0
+
+       F(  1, 14192) =    0.20
+            Prob > F =    0.6532
+
+. local p_trans_asym_F = r(p)
+
+. 
+. di as text "  ψ⁺_F = " %6.4f `psi_pos_F' " (SE " %5.4f `se_psi_pos_F' ")"
+  ψ⁺_F = 0.1144 (SE 0.0127)
+
+. di as text "  ψ⁻_F = " %6.4f `psi_neg_F' " (SE " %5.4f `se_psi_neg_F' ")"
+  ψ⁻_F = 0.2390 (SE 0.0168)
+
+. di as text "  Permanent asymmetry p = " %5.3f `p_perm_asym_F'
+  Permanent asymmetry p = 0.000
+
+. di as text "  φ⁺_F = " %6.4f `phi_pos_F' " (SE " %5.4f `se_phi_pos_F' ")"
+  φ⁺_F = 0.1392 (SE 0.0113)
+
+. di as text "  φ⁻_F = " %6.4f `phi_neg_F' " (SE " %5.4f `se_phi_neg_F' ")"
+  φ⁻_F = 0.1470 (SE 0.0104)
+
+. di as text "  Transitory asymmetry p = " %5.3f `p_trans_asym_F'
+  Transitory asymmetry p = 0.653
+
+. 
+. * --- Informal workers only ---
+. di as text _n "--- Informal Workers ---"
+
+--- Informal Workers ---
+
+. eststo m_informal: reghdfe dlnc perm_pos perm_neg trans_pos trans_neg ///
+>     if bpp4_sample == 1 & informal == 1, ///
+>     absorb(idind) vce(cluster idind)
+(dropped 4708 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     45,890
+Absorbing 1 HDFE group                            F(   4,   9480) =      42.55
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.1164
+                                                  Adj R-squared   =    -0.1138
+                                                  Within R-sq.    =     0.0046
+Number of clusters (idind)   =      9,481         Root MSE        =     0.4092
+
+                              (Std. err. adjusted for 9,481 clusters in idind)
+------------------------------------------------------------------------------
+             |               Robust
+        dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    perm_pos |   .1032269   .0300365     3.44   0.001      .044349    .1621048
+    perm_neg |   .2129207   .0359318     5.93   0.000     .1424866    .2833548
+   trans_pos |   .1661753   .0243751     6.82   0.000     .1183948    .2139558
+   trans_neg |   .1422362   .0257981     5.51   0.000     .0916665     .192806
+       _cons |   .0171064   .0010933    15.65   0.000     .0149633    .0192495
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |      9481        9481           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+. local psi_pos_I = _b[perm_pos]
+
+. local psi_neg_I = _b[perm_neg]
+
+. local phi_pos_I = _b[trans_pos]
+
+. local phi_neg_I = _b[trans_neg]
+
+. local se_psi_pos_I = _se[perm_pos]
+
+. local se_psi_neg_I = _se[perm_neg]
+
+. local se_phi_pos_I = _se[trans_pos]
+
+. local se_phi_neg_I = _se[trans_neg]
+
+. local N_informal = e(N)
+
+. 
+. test perm_pos = perm_neg
+
+ ( 1)  perm_pos - perm_neg = 0
+
+       F(  1,  9480) =    4.17
+            Prob > F =    0.0412
+
+. local p_perm_asym_I = r(p)
+
+. test trans_pos = trans_neg
+
+ ( 1)  trans_pos - trans_neg = 0
+
+       F(  1,  9480) =    0.35
+            Prob > F =    0.5530
+
+. local p_trans_asym_I = r(p)
+
+. 
+. di as text "  ψ⁺_I = " %6.4f `psi_pos_I' " (SE " %5.4f `se_psi_pos_I' ")"
+  ψ⁺_I = 0.1032 (SE 0.0300)
+
+. di as text "  ψ⁻_I = " %6.4f `psi_neg_I' " (SE " %5.4f `se_psi_neg_I' ")"
+  ψ⁻_I = 0.2129 (SE 0.0359)
+
+. di as text "  Permanent asymmetry p = " %5.3f `p_perm_asym_I'
+  Permanent asymmetry p = 0.041
+
+. di as text "  φ⁺_I = " %6.4f `phi_pos_I' " (SE " %5.4f `se_phi_pos_I' ")"
+  φ⁺_I = 0.1662 (SE 0.0244)
+
+. di as text "  φ⁻_I = " %6.4f `phi_neg_I' " (SE " %5.4f `se_phi_neg_I' ")"
+  φ⁻_I = 0.1422 (SE 0.0258)
+
+. di as text "  Transitory asymmetry p = " %5.3f `p_trans_asym_I'
+  Transitory asymmetry p = 0.553
+
+. 
+. * --- Full interaction model ---
+. di as text _n "--- Full Interaction Model ---"
+
+--- Full Interaction Model ---
+
+. eststo m_interact: reghdfe dlnc perm_pos perm_neg trans_pos trans_neg ///
+>     perm_pos_x_inf perm_neg_x_inf trans_pos_x_inf trans_neg_x_inf ///
+>     informal ///
+>     if bpp4_sample == 1, ///
+>     absorb(idind) vce(cluster idind)
+(dropped 4142 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    138,747
+Absorbing 1 HDFE group                            F(   9,  19284) =     129.29
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.0675
+                                                  Adj R-squared   =    -0.0831
+                                                  Within R-sq.    =     0.0106
+Number of clusters (idind)   =     19,285         Root MSE        =     0.3826
+
+                                (Std. err. adjusted for 19,285 clusters in idind)
+---------------------------------------------------------------------------------
+                |               Robust
+           dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+----------------+----------------------------------------------------------------
+       perm_pos |   .1162075    .012351     9.41   0.000     .0919984    .1404166
+       perm_neg |   .2396471   .0163563    14.65   0.000     .2075874    .2717069
+      trans_pos |    .137549   .0110292    12.47   0.000     .1159308    .1591672
+      trans_neg |   .1461804   .0102065    14.32   0.000     .1261748     .166186
+ perm_pos_x_inf |   .0129851   .0298303     0.44   0.663    -.0454848    .0714551
+ perm_neg_x_inf |  -.0538549   .0370796    -1.45   0.146    -.1265342    .0188245
+trans_pos_x_inf |   .0311851   .0245125     1.27   0.203    -.0168615    .0792317
+trans_neg_x_inf |  -.0096737   .0250643    -0.39   0.700     -.058802    .0394546
+       informal |  -.0275921   .0035168    -7.85   0.000    -.0344853   -.0206989
+          _cons |   .0305558   .0016142    18.93   0.000     .0273919    .0337198
+---------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |     19285       19285           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+. * Key tests
+. di as text _n "--- KEY PREDICTION TESTS ---"
+
+--- KEY PREDICTION TESTS ---
+
+. 
+. local diff_phi_neg = _b[trans_neg_x_inf]
+
+. local se_diff_phi_neg = _se[trans_neg_x_inf]
+
+. test trans_neg_x_inf = 0
+
+ ( 1)  trans_neg_x_inf = 0
+
+       F(  1, 19284) =    0.15
+            Prob > F =    0.6995
+
+. local p_phi_neg_diff = r(p)
+
+. di as text "Test 1: φ⁻_I - φ⁻_F = " %6.4f `diff_phi_neg' " (p = " %5.3f `p_phi_neg_diff' ")"
+Test 1: φ⁻_I - φ⁻_F = -0.0097 (p = 0.700)
+
+. 
+. local diff_phi_pos = _b[trans_pos_x_inf]
+
+. local se_diff_phi_pos = _se[trans_pos_x_inf]
+
+. test trans_pos_x_inf = 0
+
+ ( 1)  trans_pos_x_inf = 0
+
+       F(  1, 19284) =    1.62
+            Prob > F =    0.2033
+
+. local p_phi_pos_diff = r(p)
+
+. di as text "Test 2: φ⁺_I - φ⁺_F = " %6.4f `diff_phi_pos' " (p = " %5.3f `p_phi_pos_diff' ")"
+Test 2: φ⁺_I - φ⁺_F = 0.0312 (p = 0.203)
+
+. 
+. test trans_pos_x_inf = trans_neg_x_inf
+
+ ( 1)  trans_pos_x_inf - trans_neg_x_inf = 0
+
+       F(  1, 19284) =    1.09
+            Prob > F =    0.2966
+
+. local p_trans_penalty_asym = r(p)
+
+. di as text "Test 3: Asym penalty test p = " %5.3f `p_trans_penalty_asym'
+Test 3: Asym penalty test p = 0.297
+
+. 
+. local diff_psi_neg = _b[perm_neg_x_inf]
+
+. local diff_psi_pos = _b[perm_pos_x_inf]
+
+. test perm_neg_x_inf = 0
+
+ ( 1)  perm_neg_x_inf = 0
+
+       F(  1, 19284) =    2.11
+            Prob > F =    0.1464
+
+. local p_psi_neg_diff = r(p)
+
+. test perm_pos_x_inf = 0
+
+ ( 1)  perm_pos_x_inf = 0
+
+       F(  1, 19284) =    0.19
+            Prob > F =    0.6633
+
+. local p_psi_pos_diff = r(p)
+
+. 
+. * =============================================================================
+. * 4. SUMMARY TABLE
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  FOUR-WAY BPP SUMMARY"
+  FOUR-WAY BPP SUMMARY
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. di as text _n "========================================================================"
+
+========================================================================
+
+. di as text   "                          Formal Workers         Informal Workers"
+                          Formal Workers         Informal Workers
+
+. di as text   "                        Estimate   (SE)         Estimate   (SE)"
+                        Estimate   (SE)         Estimate   (SE)
+
+. di as text   "========================================================================"
+========================================================================
+
+. di as text   "Permanent Shocks:"
+Permanent Shocks:
+
+. di as text   "  ψ⁺ (positive)         " %7.4f `psi_pos_F' "  (" %5.4f `se_psi_pos_F' ")      " %7.4f `
+> psi_pos_I' "  (" %5.4f `se_psi_pos_I' ")"
+  ψ⁺ (positive)          0.1144  (0.0127)       0.1032  (0.0300)
+
+. di as text   "  ψ⁻ (negative)         " %7.4f `psi_neg_F' "  (" %5.4f `se_psi_neg_F' ")      " %7.4f `
+> psi_neg_I' "  (" %5.4f `se_psi_neg_I' ")"
+  ψ⁻ (negative)          0.2390  (0.0168)       0.2129  (0.0359)
+
+. di as text   "  Asymmetry p:                " %5.3f `p_perm_asym_F' "                    " %5.3f `p_pe
+> rm_asym_I'
+  Asymmetry p:                0.000                    0.041
+
+. di as text   "------------------------------------------------------------------------"
+------------------------------------------------------------------------
+
+. di as text   "Transitory Shocks:"
+Transitory Shocks:
+
+. di as text   "  φ⁺ (positive)         " %7.4f `phi_pos_F' "  (" %5.4f `se_phi_pos_F' ")      " %7.4f `
+> phi_pos_I' "  (" %5.4f `se_phi_pos_I' ")"
+  φ⁺ (positive)          0.1392  (0.0113)       0.1662  (0.0244)
+
+. di as text   "  φ⁻ (negative)         " %7.4f `phi_neg_F' "  (" %5.4f `se_phi_neg_F' ")      " %7.4f `
+> phi_neg_I' "  (" %5.4f `se_phi_neg_I' ")"
+  φ⁻ (negative)          0.1470  (0.0104)       0.1422  (0.0258)
+
+. di as text   "  Asymmetry p:                " %5.3f `p_trans_asym_F' "                    " %5.3f `p_t
+> rans_asym_I'
+  Asymmetry p:                0.653                    0.553
+
+. di as text   "========================================================================"
+========================================================================
+
+. di as text   "N                            " `N_formal' "                   " `N_informal'
+N                            88111                   45890
+
+. di as text   "========================================================================"
+========================================================================
+
+. 
+. di as text _n "KEY FINDING:"
+
+KEY FINDING:
+
+. if `p_phi_neg_diff' < 0.10 & `p_phi_pos_diff' > 0.10 {
+.     di as text "  CONFIRMED: Informal penalty concentrated on NEGATIVE TRANSITORY"
+. }
+
+. else if `p_phi_neg_diff' < 0.10 & `p_phi_pos_diff' < 0.10 {
+.     di as text "  Both φ⁺ and φ⁻ differ: general smoothing deficit"
+. }
+
+. else {
+.     di as text "  INCONCLUSIVE: No significant formal-informal differences in BPP"
+  INCONCLUSIVE: No significant formal-informal differences in BPP
+. }
+
+. 
+. * =============================================================================
+. * 5. EXPORT RESULTS
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  Export Results"
+  Export Results
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Main table
+. esttab m_formal m_informal m_interact using "Tables/R12_asymmetric_bpp.tex", replace ///
+>     keep(perm_pos perm_neg trans_pos trans_neg ///
+>          perm_pos_x_inf perm_neg_x_inf trans_pos_x_inf trans_neg_x_inf) ///
+>     mtitles("Formal" "Informal" "Interaction") ///
+>     coeflabels(perm_pos "$\psi^+$" perm_neg "$\psi^-$" ///
+>                trans_pos "$\phi^+$" trans_neg "$\phi^-$" ///
+>                perm_pos_x_inf "$\psi^+ \times$ Informal" ///
+>                perm_neg_x_inf "$\psi^- \times$ Informal" ///
+>                trans_pos_x_inf "$\phi^+ \times$ Informal" ///
+>                trans_neg_x_inf "$\phi^- \times$ Informal") ///
+>     se star(* 0.10 ** 0.05 *** 0.01) ///
+>     title("Four-Way BPP Decomposition") ///
+>     label booktabs ///
+>     addnotes("Individual FE. Clustered SE.")
+(file Tables/R12_asymmetric_bpp.tex not found)
+(output written to Tables/R12_asymmetric_bpp.tex)
+
+. 
+. * Summary CSV
+. preserve
+
+.     clear
+
+.     set obs 4
+Number of observations (_N) was 0, now 4.
+
+.     gen coefficient = ""
+(4 missing values generated)
+
+.     gen formal = .
+(4 missing values generated)
+
+.     gen se_formal = .
+(4 missing values generated)
+
+.     gen informal = .
+(4 missing values generated)
+
+.     gen se_informal = .
+(4 missing values generated)
+
+.     gen difference = .
+(4 missing values generated)
+
+.     gen p_diff = .
+(4 missing values generated)
+
+. 
+.     replace coefficient = "psi_pos" in 1
+variable coefficient was str1 now str7
+(1 real change made)
+
+.     replace formal = `psi_pos_F' in 1
+(1 real change made)
+
+.     replace se_formal = `se_psi_pos_F' in 1
+(1 real change made)
+
+.     replace informal = `psi_pos_I' in 1
+(1 real change made)
+
+.     replace se_informal = `se_psi_pos_I' in 1
+(1 real change made)
+
+.     replace difference = `diff_psi_pos' in 1
+(1 real change made)
+
+.     replace p_diff = `p_psi_pos_diff' in 1
+(1 real change made)
+
+. 
+.     replace coefficient = "psi_neg" in 2
+(1 real change made)
+
+.     replace formal = `psi_neg_F' in 2
+(1 real change made)
+
+.     replace se_formal = `se_psi_neg_F' in 2
+(1 real change made)
+
+.     replace informal = `psi_neg_I' in 2
+(1 real change made)
+
+.     replace se_informal = `se_psi_neg_I' in 2
+(1 real change made)
+
+.     replace difference = `diff_psi_neg' in 2
+(1 real change made)
+
+.     replace p_diff = `p_psi_neg_diff' in 2
+(1 real change made)
+
+. 
+.     replace coefficient = "phi_pos" in 3
+(1 real change made)
+
+.     replace formal = `phi_pos_F' in 3
+(1 real change made)
+
+.     replace se_formal = `se_phi_pos_F' in 3
+(1 real change made)
+
+.     replace informal = `phi_pos_I' in 3
+(1 real change made)
+
+.     replace se_informal = `se_phi_pos_I' in 3
+(1 real change made)
+
+.     replace difference = `diff_phi_pos' in 3
+(1 real change made)
+
+.     replace p_diff = `p_phi_pos_diff' in 3
+(1 real change made)
+
+. 
+.     replace coefficient = "phi_neg" in 4
+(1 real change made)
+
+.     replace formal = `phi_neg_F' in 4
+(1 real change made)
+
+.     replace se_formal = `se_phi_neg_F' in 4
+(1 real change made)
+
+.     replace informal = `phi_neg_I' in 4
+(1 real change made)
+
+.     replace se_informal = `se_phi_neg_I' in 4
+(1 real change made)
+
+.     replace difference = `diff_phi_neg' in 4
+(1 real change made)
+
+.     replace p_diff = `p_phi_neg_diff' in 4
+(1 real change made)
+
+. 
+.     export delimited using "Tables/R12_asymmetric_bpp_summary.csv", replace
+(file Tables/R12_asymmetric_bpp_summary.csv not found)
+file Tables/R12_asymmetric_bpp_summary.csv saved
+
+. restore
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTechnology/_Research/Credit
+> _Market/Credit market (1)/Welfare analysis/Logs/R12_asymmetric_bpp.log
+  log type:  text
+ closed on:  20 Feb 2026, 17:11:53
+--------------------------------------------------------------------------------------------------------
