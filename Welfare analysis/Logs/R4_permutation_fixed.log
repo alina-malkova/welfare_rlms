@@ -1,0 +1,1429 @@
+--------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTechnology/_Research/Credit
+> _Market/Credit market (1)/Welfare analysis/Logs/R4_permutation_fixed.log
+  log type:  text
+ opened on:  21 Feb 2026, 04:00:40
+
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  R4: Permutation Test (Fixed)"
+  R4: Permutation Test (Fixed)
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Load data
+. use "Data/welfare_panel_shocks.dta", clear
+(Welfare analysis - shocks and informality (Step W3))
+
+. keep if analysis_sample == 1
+(14,139 observations deleted)
+
+. xtset idind year
+
+Panel variable: idind (unbalanced)
+ Time variable: year, 2006 to 2023, but with gaps
+         Delta: 1 year
+
+. 
+. * Asymmetric shocks
+. capture confirm variable dlny_pos
+
+. if _rc != 0 {
+.     gen dlny_pos = max(dlny_lab, 0)
+.     gen dlny_neg = min(dlny_lab, 0)
+. }
+
+. 
+. * =============================================================================
+. * 1. OBSERVED TEST STATISTIC
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  1. Observed Test Statistic"
+  1. Observed Test Statistic
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Full interaction model
+. reghdfe dlnc c.dlny_pos##i.informal c.dlny_neg##i.informal, absorb(idind) vce(cluster idind)
+(dropped 4142 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    138,747
+Absorbing 1 HDFE group                            F(   5,  19284) =     269.47
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.0699
+                                                  Adj R-squared   =    -0.0803
+                                                  Within R-sq.    =     0.0131
+Number of clusters (idind)   =     19,285         Root MSE        =     0.3821
+
+                                    (Std. err. adjusted for 19,285 clusters in idind)
+-------------------------------------------------------------------------------------
+                    |               Robust
+               dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------+----------------------------------------------------------------
+           dlny_pos |   .1292034   .0066403    19.46   0.000     .1161879    .1422189
+                    |
+           informal |
+          Informal  |  -.0221517   .0035302    -6.27   0.000    -.0290712   -.0152322
+                    |
+informal#c.dlny_pos |
+          Informal  |   .0028967    .014375     0.20   0.840    -.0252797     .031073
+                    |
+           dlny_neg |   .1646347   .0085682    19.21   0.000     .1478402    .1814292
+                    |
+informal#c.dlny_neg |
+          Informal  |   .0273097   .0186708     1.46   0.144    -.0092868    .0639061
+                    |
+              _cons |    .027087   .0016705    16.21   0.000     .0238126    .0303613
+-------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |     19285       19285           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+. * δ⁺ = coefficient on dlny_pos × informal
+. * δ⁻ = coefficient on dlny_neg × informal
+. local delta_pos_obs = _b[1.informal#c.dlny_pos]
+
+. local delta_neg_obs = _b[1.informal#c.dlny_neg]
+
+. local se_delta_pos = _se[1.informal#c.dlny_pos]
+
+. local se_delta_neg = _se[1.informal#c.dlny_neg]
+
+. 
+. * Test statistic: T = δ⁻ - δ⁺
+. local T_obs = `delta_neg_obs' - `delta_pos_obs'
+
+. 
+. di as text "  δ⁺ = " %6.4f `delta_pos_obs' " (SE " %5.4f `se_delta_pos' ")"
+  δ⁺ = 0.0029 (SE 0.0144)
+
+. di as text "  δ⁻ = " %6.4f `delta_neg_obs' " (SE " %5.4f `se_delta_neg' ")"
+  δ⁻ = 0.0273 (SE 0.0187)
+
+. di as text "  T = δ⁻ - δ⁺ = " %6.4f `T_obs'
+  T = δ⁻ - δ⁺ = 0.0244
+
+. 
+. * Wald test
+. test 1.informal#c.dlny_pos = 1.informal#c.dlny_neg
+
+ ( 1)  1.informal#c.dlny_pos - 1.informal#c.dlny_neg = 0
+
+       F(  1, 19284) =    0.91
+            Prob > F =    0.3414
+
+. local wald_p = r(p)
+
+. di as text "  Wald test (H0: δ⁺ = δ⁻): p = " %5.4f `wald_p'
+  Wald test (H0: δ⁺ = δ⁻): p = 0.3414
+
+. 
+. * =============================================================================
+. * 2. PERMUTATION TEST
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  2. Permutation Test"
+  2. Permutation Test
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. di as text "  Under H0: δ⁺ = δ⁻, permuting 'informal' should produce"
+  Under H0: δ⁺ = δ⁻, permuting 'informal' should produce
+
+. di as text "  distribution of T centered at ZERO."
+  distribution of T centered at ZERO.
+
+. 
+. set seed 20260221
+
+. local B = 200
+
+. 
+. * Save original informal indicator
+. gen informal_orig = informal
+(5,804 missing values generated)
+
+. 
+. tempfile permdata
+
+. save `permdata', replace
+(file /var/folders/nh/wb1gprtx2tq7s8ykylw3q82rp3jc5y/T//S_83721.000001 not found)
+file /var/folders/nh/wb1gprtx2tq7s8ykylw3q82rp3jc5y/T//S_83721.000001 saved as .dta format
+
+. 
+. * Initialize accumulators for summary statistics
+. local sum_T = 0
+
+. local sum_T2 = 0
+
+. local n_valid = 0
+
+. local n_greater = 0
+
+. local n_greater_abs = 0
+
+. 
+. * Store individual T values in a temporary file
+. tempfile T_values
+
+. tempname handle
+
+. postfile `handle' T_perm using `T_values', replace
+(file /var/folders/nh/wb1gprtx2tq7s8ykylw3q82rp3jc5y/T//S_83721.000002 not found)
+
+. 
+. forvalues b = 1/`B' {
+  2.     if mod(`b', 50) == 0 {
+  3.         di as text "  Permutation `b'/`B'..."
+  4.     }
+  5. 
+.     preserve
+  6.         * Create person-level dataset
+.         egen tag = tag(idind)
+  7.         gen rand = runiform() if tag == 1
+  8.         bysort idind: replace rand = rand[1]
+  9. 
+.         * Permute: assign informal from randomly sorted individuals
+.         sort rand
+ 10.         gen perm_informal = informal_orig[_n]
+ 11. 
+.         * Compute test statistic with permuted informal
+.         gen perm_x_pos = dlny_pos * perm_informal
+ 12.         gen perm_x_neg = dlny_neg * perm_informal
+ 13. 
+.         capture quietly reghdfe dlnc dlny_pos dlny_neg perm_x_pos perm_x_neg perm_informal, absorb(idi
+> nd) vce(cluster idind)
+ 14. 
+.         if _rc == 0 {
+ 15.             local d_pos = _b[perm_x_pos]
+ 16.             local d_neg = _b[perm_x_neg]
+ 17.             local T_perm = `d_neg' - `d_pos'
+ 18. 
+.             * Post to file
+.             post `handle' (`T_perm')
+ 19. 
+.             * Accumulate statistics
+.             local sum_T = `sum_T' + `T_perm'
+ 20.             local sum_T2 = `sum_T2' + `T_perm'^2
+ 21.             local n_valid = `n_valid' + 1
+ 22. 
+.             if `T_perm' >= `T_obs' {
+ 23.                 local n_greater = `n_greater' + 1
+ 24.             }
+ 25.             if abs(`T_perm') >= abs(`T_obs') {
+ 26.                 local n_greater_abs = `n_greater_abs' + 1
+ 27.             }
+ 28.         }
+ 29.     restore
+ 30. }
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+  Permutation 50/200...
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+  Permutation 100/200...
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+  Permutation 150/200...
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+  Permutation 200/200...
+(148,864 missing values generated)
+(148,864 real changes made)
+(5,804 missing values generated)
+(5,804 missing values generated)
+(5,804 missing values generated)
+
+. 
+. postclose `handle'
+
+. 
+. use `permdata', clear
+(Welfare analysis - shocks and informality (Step W3))
+
+. 
+. * =============================================================================
+. * 3. PERMUTATION DISTRIBUTION
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  3. Permutation Distribution"
+  3. Permutation Distribution
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Compute summary statistics from accumulators
+. local perm_mean = `sum_T' / `n_valid'
+
+. local perm_var = (`sum_T2' - `n_valid' * `perm_mean'^2) / (`n_valid' - 1)
+
+. local perm_sd = sqrt(`perm_var')
+
+. 
+. * P-values
+. local p_onesided = `n_greater' / `n_valid'
+
+. local p_twosided = `n_greater_abs' / `n_valid'
+
+. 
+. di as text "  Valid permutations: `n_valid'"
+  Valid permutations: 200
+
+. di as text "  Permutation mean: " %8.5f `perm_mean'
+  Permutation mean:  0.02441
+
+. di as text "  Permutation SD:   " %8.5f `perm_sd'
+  Permutation SD:    0.00000
+
+. 
+. * Check: is distribution centered at zero?
+. local t_center = `perm_mean' / (`perm_sd' / sqrt(`n_valid'))
+
+. local p_center = 2 * (1 - normal(abs(`t_center')))
+
+. 
+. di as text _n "Observed T = " %8.5f `T_obs'
+
+Observed T =  0.02441
+
+. di as text "  P-value (one-sided, T >= T_obs): " %6.4f `p_onesided'
+  P-value (one-sided, T >= T_obs): 0.5850
+
+. di as text "  P-value (two-sided):             " %6.4f `p_twosided'
+  P-value (two-sided):             0.5850
+
+. 
+. di as text _n "Check: Is distribution centered at zero?"
+
+Check: Is distribution centered at zero?
+
+. di as text "  t-stat for H0: mean = 0: " %6.2f `t_center'
+  t-stat for H0: mean = 0:  2.9e+08
+
+. di as text "  p-value: " %6.4f `p_center'
+  p-value: 0.0000
+
+. 
+. if abs(`perm_mean') < 0.01 {
+.     di as text "  Distribution correctly centered at zero"
+. }
+
+. else {
+.     di as text "  Distribution NOT centered at zero - check specification"
+  Distribution NOT centered at zero - check specification
+. }
+
+. 
+. * =============================================================================
+. * 4. RESULTS
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  4. RESULTS"
+  4. RESULTS
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. di as text "  Observed (delta- - delta+): " %8.5f `T_obs'
+  Observed (delta- - delta+):  0.02441
+
+. di as text "  Permutation p-value (two-sided): " %6.4f `p_twosided'
+  Permutation p-value (two-sided): 0.5850
+
+. di as text "  Wald test p-value: " %6.4f `wald_p'
+  Wald test p-value: 0.3414
+
+. 
+. if `p_twosided' < 0.05 {
+.     di as text _n "  REJECT H0: Asymmetry is statistically significant"
+.     di as text "    Informal workers show different response to positive vs negative shocks"
+. }
+
+. else {
+.     di as text _n "  Cannot reject H0 at 5% level"
+
+  Cannot reject H0 at 5% level
+. }
+
+. 
+. * Export summary using postfile to avoid svmat
+. tempfile summary_data
+
+. tempname spost
+
+. postfile `spost' str30 statistic float value using `summary_data', replace
+(file /var/folders/nh/wb1gprtx2tq7s8ykylw3q82rp3jc5y/T//S_83721.00005x not found)
+
+. post `spost' ("T_observed") (`T_obs')
+
+. post `spost' ("delta_pos_observed") (`delta_pos_obs')
+
+. post `spost' ("delta_neg_observed") (`delta_neg_obs')
+
+. post `spost' ("perm_mean") (`perm_mean')
+
+. post `spost' ("perm_sd") (`perm_sd')
+
+. post `spost' ("p_onesided") (`p_onesided')
+
+. post `spost' ("p_twosided") (`p_twosided')
+
+. post `spost' ("wald_p") (`wald_p')
+
+. post `spost' ("B_valid") (`n_valid')
+
+. postclose `spost'
+
+. 
+. preserve
+
+.     use `summary_data', clear
+
+.     export delimited using "Tables/R4_permutation_summary.csv", replace
+(file Tables/R4_permutation_summary.csv not found)
+file Tables/R4_permutation_summary.csv saved
+
+. restore
+
+. 
+. * Also export T distribution
+. preserve
+
+.     use `T_values', clear
+
+.     export delimited using "Tables/R4_permutation_dist.csv", replace
+(file Tables/R4_permutation_dist.csv not found)
+file Tables/R4_permutation_dist.csv saved
+
+. restore
+
+. 
+. log close
+      name:  <unnamed>
+       log:  /Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTechnology/_Research/Credit
+> _Market/Credit market (1)/Welfare analysis/Logs/R4_permutation_fixed.log
+  log type:  text
+ closed on:  21 Feb 2026, 04:04:52
+--------------------------------------------------------------------------------------------------------

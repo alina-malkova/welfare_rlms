@@ -215,50 +215,112 @@ $N$ & 91,623 & 68,773 & 88,406 \\
 \textbf{Key finding:} Selection correction reduces $\delta^-$ by less than 10\%. The asymmetric smoothing penalty is not driven by selection on observables.
 
 %===============================================================================
-\section{R4: Permutation Test}
+\section{R4: Permutation Test and Wald Inference}
 %===============================================================================
 
 \subsection{Motivation}
-Standard inference assumes asymptotic normality. Permutation tests provide exact finite-sample inference by randomly reassigning the informal indicator.
+Standard inference assumes asymptotic normality. We examine both permutation tests and standard Wald inference for testing the asymmetry hypothesis $H_0: \delta^+ = \delta^-$.
 
 \subsection{Methodology}
-Under $H_0: \delta^+ = \delta^-$, the distinction between positive and negative shocks is irrelevant for informal workers. We permute the informal indicator 1,000 times and compute the distribution of the test statistic $(\delta^- - \delta^+)$.
+The Wald test directly compares the interaction coefficients from the asymmetric smoothing regression:
+\begin{equation}
+\Delta\ln C = \alpha + \beta^+ \Delta\ln Y^+ + \beta^- \Delta\ln Y^- + \delta^+ (\Delta\ln Y^+ \times \text{Informal}) + \delta^- (\Delta\ln Y^- \times \text{Informal}) + X'\theta + \mu_i + \varepsilon
+\end{equation}
 
 \subsection{Results}
 
-\begin{itemize}
-    \item Observed $(\delta^- - \delta^+) = 0.096$
-    \item Permutation mean: 0.073
-    \item Permutation SD: 0.0003
-    \item Permutation $p$-value (two-sided): $< 0.0001$
-\end{itemize}
-
-\textbf{Key finding:} The permutation test \textbf{strongly rejects} $H_0$ at the 1\% level. The observed asymmetry is extremely unlikely under the null.
-
-\begin{figure}[htbp]
+\begin{table}[htbp]
 \centering
-\includegraphics[width=0.8\textwidth]{../Figures/R4_permutation_distribution.png}
-\caption{Permutation Distribution of $(\delta^- - \delta^+)$}
-\label{fig:permutation}
-\end{figure}
+\caption{Asymmetric Consumption Smoothing Coefficients}
+\label{tab:r4_results}
+\begin{tabular}{lcccc}
+\toprule
+Parameter & Estimate & SE & $t$-stat & $p$-value \\
+\midrule
+$\beta^+$ (formal, positive shocks) & 0.129 & 0.007 & 19.46 & $<0.001$ \\
+$\beta^-$ (formal, negative shocks) & 0.165 & 0.009 & 19.21 & $<0.001$ \\
+$\delta^+$ (informal $\times$ positive) & 0.003 & 0.014 & 0.20 & 0.840 \\
+$\delta^-$ (informal $\times$ negative) & 0.027 & 0.019 & 1.46 & 0.144 \\
+\midrule
+\multicolumn{5}{l}{\textit{Tests:}} \\
+$H_0: \delta^+ = \delta^-$ (Wald) & \multicolumn{4}{c}{$F = 0.91$, $p = 0.341$} \\
+Observed $(\delta^- - \delta^+)$ & \multicolumn{4}{c}{0.024} \\
+\midrule
+$N$ & \multicolumn{4}{c}{138,747} \\
+Clusters (individuals) & \multicolumn{4}{c}{19,285} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Key Finding}
+The Wald test \textbf{cannot reject} $H_0: \delta^+ = \delta^-$ at conventional significance levels ($p = 0.341$). While informal workers show a point estimate of larger response to negative shocks ($\delta^- = 0.027$) than positive shocks ($\delta^+ = 0.003$), this difference is not statistically significant.
+
+\textbf{Interpretation:} The lack of significance may reflect:
+\begin{enumerate}
+    \item Limited statistical power to detect the interaction effect
+    \item True asymmetry that is smaller than hypothesized
+    \item Substantial heterogeneity in the informal sector
+\end{enumerate}
+
+Note that the \textit{baseline} formal worker coefficients show clear asymmetry ($\beta^- = 0.165 > \beta^+ = 0.129$), consistent with universal loss aversion. The question is whether informal workers exhibit \textit{additional} asymmetry beyond this baseline.
 
 %===============================================================================
 \section{R5: Event Study Around Income Shocks}
 %===============================================================================
 
 \subsection{Motivation}
-The event study design examines consumption dynamics around large negative income shocks, comparing formal vs informal workers.
+The event study design examines consumption dynamics around large negative income shocks (defined as $>$20\% income decline), comparing formal vs informal workers.
+
+\subsection{Methodology}
+We estimate:
+\begin{equation}
+\Delta\ln C_{it} = \sum_{k=-5}^{5} \beta_k \cdot \mathbf{1}[\text{event time} = k] + \mu_i + \tau_t + \varepsilon_{it}
+\end{equation}
+where event time $k = 0$ is the year of first large negative shock. Reference period is $k = -1$.
 
 \subsection{Results}
 
-\begin{figure}[htbp]
+\begin{table}[htbp]
 \centering
-\includegraphics[width=0.8\textwidth]{../Figures/R5_event_study_full.png}
-\caption{Event Study: Consumption Response to Negative Income Shocks}
-\label{fig:event_study}
-\end{figure}
+\caption{Event Study Coefficients: Consumption Response to Income Shocks}
+\label{tab:r5_results}
+\begin{tabular}{lccccc}
+\toprule
+Event Time & Full Sample & Formal & Informal & Interaction & $p$-value \\
+\midrule
+$t = -5$ & $-0.011$ & 0.009 & $-0.028$ & & \\
+$t = -4$ & $-0.016$** & $-0.019$* & $-0.006$ & & \\
+$t = -3$ & $-0.009$ & $-0.011$ & 0.006 & & \\
+$t = -2$ & $-0.005$ & $-0.009$ & 0.003 & & \\
+$t = -1$ & 0 & 0 & 0 & & (ref) \\
+\midrule
+$t = 0$ & $-0.088$*** & $-0.087$*** & $-0.103$*** & $-0.031$*** & 0.004 \\
+$t = +1$ & 0.000 & $-0.001$ & $-0.003$ & $-0.014$ & 0.196 \\
+$t = +2$ & $-0.016$*** & $-0.017$*** & $-0.022$* & $-0.010$ & 0.358 \\
+$t = +3$ & 0.002 & 0.004 & 0.003 & $-0.013$ & 0.265 \\
+\midrule
+$N$ & 90,325 & 65,714 & 21,033 & & \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Notes: Dependent variable is $\Delta\ln(\text{Consumption})$. Individual and year FE. Clustered SE by individual. *** $p<0.01$, ** $p<0.05$, * $p<0.10$. Interaction column shows informal worker penalty relative to formal workers.
+\end{tablenotes}
+\end{table}
 
-\textbf{Key finding:} Informal workers experience a larger and more persistent consumption drop following negative income shocks. Pre-trends are parallel, supporting the identification assumption.
+\subsection{Key Findings}
+
+\begin{enumerate}
+    \item \textbf{Pre-trends are parallel:} Coefficients for $t = -5$ to $t = -2$ are all close to zero and not jointly significant, supporting the identification assumption.
+
+    \item \textbf{Large consumption drop at shock:} At $t = 0$, consumption falls by 8.8\% on average. Formal workers experience an 8.7\% decline; informal workers experience a 10.3\% decline.
+
+    \item \textbf{Significant informal penalty at impact:} The interaction term shows informal workers experience an \textbf{additional 3.1 percentage point consumption decline} at the time of shock ($p = 0.004$), relative to formal workers facing the same income shock.
+
+    \item \textbf{Recovery is similar:} Post-shock coefficients ($t = +1$ to $t = +3$) do not show significant informal-formal differences, suggesting the penalty is concentrated at impact rather than persistent.
+\end{enumerate}
+
+\textbf{Interpretation:} The event study provides clean causal evidence that informal workers face worse consumption outcomes when hit by negative income shocks. The effect is concentrated at the time of shock, consistent with differential ability to access credit or savings buffers to smooth the initial impact.
 
 %===============================================================================
 \section{R6: BPP Decomposition (Permanent vs Transitory Shocks)}
@@ -555,8 +617,8 @@ Analysis & Method & Key Estimate & Conclusion \\
 R1 & Partial identification & $\lambda \in [1.5, 2.9]$ & Loss aversion confirmed \\
 R2 & Quantile regression & $\delta^- = 0.06$--$0.09$ & Robust across distribution \\
 R3 & Selection correction & $\delta^- = 0.063$--$0.070$ & Not driven by selection \\
-R4 & Permutation test & $p < 0.0001$ & Highly significant \\
-R5 & Event study & Persistent gap & Dynamic effect confirmed \\
+R4 & Wald test & $p = 0.341$ & Asymmetry not significant \\
+R5 & Event study & $-3.1$pp penalty & Impact effect confirmed \\
 R6 & BPP decomposition & $\phi_{\text{inf}} = 0.108$ & Transitory shock channel \\
 R7 & Habit formation & 8.3\% reduction & Loss aversion, not habits \\
 R8 & Regression kink & $p = 0.031$ & Kink at zero confirmed \\

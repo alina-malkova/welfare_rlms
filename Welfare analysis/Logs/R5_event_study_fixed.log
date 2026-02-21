@@ -1,0 +1,595 @@
+--------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTechnology/_Research/Credit
+> _Market/Credit market (1)/Welfare analysis/Logs/R5_event_study_fixed.log
+  log type:  text
+ opened on:  21 Feb 2026, 03:59:17
+
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  R5: Event Study (Fixed)"
+  R5: Event Study (Fixed)
+
+. di as text    "=============================================="
+==============================================
+
+. di as text "  Now using dlnc (log-difference) to match main analysis"
+  Now using dlnc (log-difference) to match main analysis
+
+. 
+. * Load data
+. use "Data/welfare_panel_shocks.dta", clear
+(Welfare analysis - shocks and informality (Step W3))
+
+. keep if analysis_sample == 1
+(14,139 observations deleted)
+
+. xtset idind year
+
+Panel variable: idind (unbalanced)
+ Time variable: year, 2006 to 2023, but with gaps
+         Delta: 1 year
+
+. 
+. * =============================================================================
+. * 1. IDENTIFY SHOCK EVENTS
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  1. Identify Shock Events"
+  1. Identify Shock Events
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Define large negative income shock
+. * Using 20% decline in labor income as threshold
+. gen byte large_neg_shock = (dlny_lab < -0.20) if !missing(dlny_lab)
+(87,378 missing values generated)
+
+. label variable large_neg_shock "Large negative shock (dlny < -20%)"
+
+. 
+. tab large_neg_shock informal, col
+
++-------------------+
+| Key               |
+|-------------------|
+|     frequency     |
+| column percentage |
++-------------------+
+
+     Large |
+  negative |
+     shock |    Informal worker
+   (dlny < | (combined definition)
+     -20%) |    Formal   Informal |     Total
+-----------+----------------------+----------
+         0 |    60,690     12,614 |    73,304 
+           |     80.30      77.98 |     79.90 
+-----------+----------------------+----------
+         1 |    14,885      3,561 |    18,446 
+           |     19.70      22.02 |     20.10 
+-----------+----------------------+----------
+     Total |    75,575     16,175 |    91,750 
+           |    100.00     100.00 |    100.00 
+
+. 
+. * First shock year for each individual
+. bysort idind (year): gen first_shock = (large_neg_shock == 1 & sum(large_neg_shock[_n-1]) == 0)
+
+. bysort idind (year): gen first_shock_year = year if first_shock == 1
+(168,786 missing values generated)
+
+. bysort idind: egen treatment_year = min(first_shock_year)
+(77,895 missing values generated)
+
+. 
+. * Event time
+. gen event_time = year - treatment_year if !missing(treatment_year)
+(77,895 missing values generated)
+
+. label variable event_time "Years relative to first large negative shock"
+
+. 
+. * Sample restriction for event study
+. * Keep those with shocks and sufficient pre/post periods
+. gen has_shock = !missing(treatment_year)
+
+. tab has_shock informal
+
+           |    Informal worker
+           | (combined definition)
+ has_shock |    Formal   Informal |     Total
+-----------+----------------------+----------
+         0 |    36,100     37,560 |    73,660 
+         1 |    73,820     25,850 |    99,670 
+-----------+----------------------+----------
+     Total |   109,920     63,410 |   173,330 
+
+. 
+. * =============================================================================
+. * 2. TRADITIONAL EVENT STUDY (TWFE)
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  2. Traditional Event Study"
+  2. Traditional Event Study
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Create event-time dummies (-5 to +5, reference = -1)
+. forvalues k = 5(-1)2 {
+  2.     gen e_m`k' = (event_time == -`k')
+  3. }
+
+. * e_m1 omitted as reference
+. gen e_0 = (event_time == 0)
+
+. forvalues k = 1/5 {
+  2.     gen e_p`k' = (event_time == `k')
+  3. }
+
+. 
+. * Endpoint bins
+. gen e_m6plus = (event_time <= -6) if !missing(event_time)
+(77,895 missing values generated)
+
+. gen e_p6plus = (event_time >= 6) if !missing(event_time)
+(77,895 missing values generated)
+
+. 
+. * Full sample event study
+. di as text "--- Full sample ---"
+--- Full sample ---
+
+. reghdfe dlnc e_m5 e_m4 e_m3 e_m2 e_0 e_p1 e_p2 e_p3 e_p4 e_p5 ///
+>     if has_shock == 1, ///
+>     absorb(idind year) vce(cluster idind)
+(dropped 441 singleton observations)
+(MWFE estimator converged in 7 iterations)
+
+HDFE Linear regression                            Number of obs   =     90,325
+Absorbing 2 HDFE groups                           F(  10,   9906) =      39.01
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.0533
+                                                  Adj R-squared   =    -0.0636
+                                                  Within R-sq.    =     0.0053
+Number of clusters (idind)   =      9,907         Root MSE        =     0.3723
+
+                              (Std. err. adjusted for 9,907 clusters in idind)
+------------------------------------------------------------------------------
+             |               Robust
+        dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        e_m5 |  -.0110708   .0102755    -1.08   0.281    -.0312129    .0090713
+        e_m4 |  -.0164443   .0081391    -2.02   0.043    -.0323986   -.0004899
+        e_m3 |  -.0094233   .0068565    -1.37   0.169    -.0228635    .0040169
+        e_m2 |  -.0053236   .0064405    -0.83   0.408    -.0179482    .0073011
+         e_0 |  -.0879907   .0048868   -18.01   0.000    -.0975697   -.0784116
+        e_p1 |   .0004024   .0045141     0.09   0.929    -.0084462     .009251
+        e_p2 |  -.0157664   .0047419    -3.32   0.001    -.0250615   -.0064714
+        e_p3 |    .002329   .0049194     0.47   0.636     -.007314     .011972
+        e_p4 |  -.0109958   .0050343    -2.18   0.029    -.0208641   -.0011275
+        e_p5 |  -.0122024     .00555    -2.20   0.028    -.0230814   -.0013234
+       _cons |   .0285246   .0016399    17.39   0.000     .0253102    .0317391
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |      9907        9907           0    *|
+        year |        18           0          18     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+. * Store coefficients
+. matrix COEF_FULL = J(11, 3, .)  // time, coef, se
+
+. local row = 1
+
+. forvalues k = 5(-1)2 {
+  2.     matrix COEF_FULL[`row', 1] = -`k'
+  3.     matrix COEF_FULL[`row', 2] = _b[e_m`k']
+  4.     matrix COEF_FULL[`row', 3] = _se[e_m`k']
+  5.     local ++row
+  6. }
+
+. * Reference period -1
+. matrix COEF_FULL[`row', 1] = -1
+
+. matrix COEF_FULL[`row', 2] = 0
+
+. matrix COEF_FULL[`row', 3] = 0
+
+. local ++row
+
+. * Post-shock
+. matrix COEF_FULL[`row', 1] = 0
+
+. matrix COEF_FULL[`row', 2] = _b[e_0]
+
+. matrix COEF_FULL[`row', 3] = _se[e_0]
+
+. local ++row
+
+. forvalues k = 1/5 {
+  2.     matrix COEF_FULL[`row', 1] = `k'
+  3.     matrix COEF_FULL[`row', 2] = _b[e_p`k']
+  4.     matrix COEF_FULL[`row', 3] = _se[e_p`k']
+  5.     local ++row
+  6. }
+
+. 
+. * =============================================================================
+. * 3. BY INFORMALITY STATUS
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  3. Event Study by Informality"
+  3. Event Study by Informality
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Store interaction coefficients
+. gen inf_x_e_0 = e_0 * informal
+(5,804 missing values generated)
+
+. gen inf_x_e_p1 = e_p1 * informal
+(5,804 missing values generated)
+
+. gen inf_x_e_p2 = e_p2 * informal
+(5,804 missing values generated)
+
+. gen inf_x_e_p3 = e_p3 * informal
+(5,804 missing values generated)
+
+. 
+. * Interaction model
+. di as text "--- Interaction model ---"
+--- Interaction model ---
+
+. reghdfe dlnc e_m5 e_m4 e_m3 e_m2 e_0 e_p1 e_p2 e_p3 e_p4 e_p5 ///
+>     inf_x_e_0 inf_x_e_p1 inf_x_e_p2 inf_x_e_p3 ///
+>     if has_shock == 1, ///
+>     absorb(idind year) vce(cluster idind)
+(dropped 446 singleton observations)
+(MWFE estimator converged in 7 iterations)
+
+HDFE Linear regression                            Number of obs   =     88,922
+Absorbing 2 HDFE groups                           F(  14,   9901) =      28.83
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.0548
+                                                  Adj R-squared   =    -0.0640
+                                                  Within R-sq.    =     0.0055
+Number of clusters (idind)   =      9,902         Root MSE        =     0.3719
+
+                              (Std. err. adjusted for 9,902 clusters in idind)
+------------------------------------------------------------------------------
+             |               Robust
+        dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        e_m5 |  -.0071842   .0104471    -0.69   0.492    -.0276626    .0132943
+        e_m4 |  -.0165177    .008259    -2.00   0.046    -.0327071   -.0003284
+        e_m3 |   -.007488    .006948    -1.08   0.281    -.0211075    .0061315
+        e_m2 |  -.0042789   .0065026    -0.66   0.511    -.0170253    .0084676
+         e_0 |   -.081841   .0053329   -15.35   0.000    -.0922947   -.0713874
+        e_p1 |   .0040745   .0051291     0.79   0.427    -.0059795    .0141286
+        e_p2 |  -.0123362   .0054574    -2.26   0.024    -.0230337   -.0016386
+        e_p3 |   .0063106   .0057297     1.10   0.271    -.0049207    .0175419
+        e_p4 |  -.0111695   .0050877    -2.20   0.028    -.0211425   -.0011966
+        e_p5 |  -.0112866   .0055816    -2.02   0.043    -.0222276   -.0003456
+   inf_x_e_0 |  -.0308851   .0108433    -2.85   0.004    -.0521403     -.00963
+  inf_x_e_p1 |  -.0136507   .0105626    -1.29   0.196    -.0343555    .0070541
+  inf_x_e_p2 |  -.0102298    .011122    -0.92   0.358    -.0320313    .0115716
+  inf_x_e_p3 |   -.012598   .0113011    -1.11   0.265    -.0347504    .0095544
+       _cons |   .0284773   .0016683    17.07   0.000      .025207    .0317476
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |      9902        9902           0    *|
+        year |        18           0          18     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+. di as text _n "Key interaction coefficients:"
+
+Key interaction coefficients:
+
+. di as text "  Informal × t=0:  " %6.4f _b[inf_x_e_0] " (SE " %5.4f _se[inf_x_e_0] ")"
+  Informal × t=0:  -0.0309 (SE 0.0108)
+
+. di as text "  Informal × t=+1: " %6.4f _b[inf_x_e_p1] " (SE " %5.4f _se[inf_x_e_p1] ")"
+  Informal × t=+1: -0.0137 (SE 0.0106)
+
+. di as text "  Informal × t=+2: " %6.4f _b[inf_x_e_p2] " (SE " %5.4f _se[inf_x_e_p2] ")"
+  Informal × t=+2: -0.0102 (SE 0.0111)
+
+. di as text "  Informal × t=+3: " %6.4f _b[inf_x_e_p3] " (SE " %5.4f _se[inf_x_e_p3] ")"
+  Informal × t=+3: -0.0126 (SE 0.0113)
+
+. 
+. * Separate by informality status
+. di as text _n "--- Formal workers only ---"
+
+--- Formal workers only ---
+
+. reghdfe dlnc e_m5 e_m4 e_m3 e_m2 e_0 e_p1 e_p2 e_p3 e_p4 e_p5 ///
+>     if has_shock == 1 & informal == 0, ///
+>     absorb(idind year) vce(cluster idind)
+(dropped 892 singleton observations)
+(MWFE estimator converged in 8 iterations)
+
+HDFE Linear regression                            Number of obs   =     65,714
+Absorbing 2 HDFE groups                           F(  10,   8979) =      28.68
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.0790
+                                                  Adj R-squared   =    -0.0673
+                                                  Within R-sq.    =     0.0056
+Number of clusters (idind)   =      8,980         Root MSE        =     0.3686
+
+                              (Std. err. adjusted for 8,980 clusters in idind)
+------------------------------------------------------------------------------
+             |               Robust
+        dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        e_m5 |   .0092428   .0123787     0.75   0.455    -.0150222    .0335078
+        e_m4 |  -.0192218   .0101344    -1.90   0.058    -.0390875    .0006438
+        e_m3 |  -.0113955   .0083466    -1.37   0.172    -.0277567    .0049657
+        e_m2 |  -.0088718   .0076304    -1.16   0.245    -.0238292    .0060855
+         e_0 |  -.0868547   .0057251   -15.17   0.000    -.0980773   -.0756321
+        e_p1 |  -.0012033   .0053922    -0.22   0.823    -.0117733    .0093667
+        e_p2 |  -.0169404   .0056844    -2.98   0.003    -.0280831   -.0057976
+        e_p3 |   .0035319   .0058949     0.60   0.549    -.0080234    .0150873
+        e_p4 |  -.0061061   .0059613    -1.02   0.306    -.0177915    .0055794
+        e_p5 |  -.0130632   .0065102    -2.01   0.045    -.0258246   -.0003018
+       _cons |   .0315743   .0020426    15.46   0.000     .0275704    .0355783
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |      8980        8980           0    *|
+        year |        18           0          18     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+. matrix COEF_FORMAL = J(11, 3, .)
+
+. local row = 1
+
+. forvalues k = 5(-1)2 {
+  2.     matrix COEF_FORMAL[`row', 1] = -`k'
+  3.     capture matrix COEF_FORMAL[`row', 2] = _b[e_m`k']
+  4.     capture matrix COEF_FORMAL[`row', 3] = _se[e_m`k']
+  5.     local ++row
+  6. }
+
+. matrix COEF_FORMAL[`row', 1] = -1
+
+. matrix COEF_FORMAL[`row', 2] = 0
+
+. matrix COEF_FORMAL[`row', 3] = 0
+
+. local ++row
+
+. matrix COEF_FORMAL[`row', 1] = 0
+
+. capture matrix COEF_FORMAL[`row', 2] = _b[e_0]
+
+. capture matrix COEF_FORMAL[`row', 3] = _se[e_0]
+
+. local ++row
+
+. forvalues k = 1/5 {
+  2.     matrix COEF_FORMAL[`row', 1] = `k'
+  3.     capture matrix COEF_FORMAL[`row', 2] = _b[e_p`k']
+  4.     capture matrix COEF_FORMAL[`row', 3] = _se[e_p`k']
+  5.     local ++row
+  6. }
+
+. 
+. di as text _n "--- Informal workers only ---"
+
+--- Informal workers only ---
+
+. reghdfe dlnc e_m5 e_m4 e_m3 e_m2 e_0 e_p1 e_p2 e_p3 e_p4 e_p5 ///
+>     if has_shock == 1 & informal == 1, ///
+>     absorb(idind year) vce(cluster idind)
+(dropped 1729 singleton observations)
+(MWFE estimator converged in 9 iterations)
+
+HDFE Linear regression                            Number of obs   =     21,033
+Absorbing 2 HDFE groups                           F(  10,   4260) =       9.44
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.1330
+                                                  Adj R-squared   =    -0.0890
+                                                  Within R-sq.    =     0.0057
+Number of clusters (idind)   =      4,261         Root MSE        =     0.3865
+
+                              (Std. err. adjusted for 4,261 clusters in idind)
+------------------------------------------------------------------------------
+             |               Robust
+        dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        e_m5 |  -.0275191   .0219544    -1.25   0.210    -.0705611     .015523
+        e_m4 |  -.0059192   .0178096    -0.33   0.740    -.0408352    .0289969
+        e_m3 |   .0057733   .0155755     0.37   0.711    -.0247628    .0363094
+        e_m2 |   .0025141   .0147665     0.17   0.865    -.0264359    .0314642
+         e_0 |  -.1033547   .0120711    -8.56   0.000    -.1270204    -.079689
+        e_p1 |   -.003423   .0112175    -0.31   0.760    -.0254151    .0185692
+        e_p2 |  -.0215021   .0112846    -1.91   0.057    -.0436257    .0006215
+        e_p3 |   .0033026   .0111518     0.30   0.767    -.0185607    .0251659
+        e_p4 |  -.0380116   .0116627    -3.26   0.001    -.0608766   -.0151466
+        e_p5 |  -.0076023   .0123966    -0.61   0.540    -.0319061    .0167015
+       _cons |   .0233621   .0038441     6.08   0.000     .0158257    .0308984
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |      4261        4261           0    *|
+        year |        18           0          18     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+. matrix COEF_INFORMAL = J(11, 3, .)
+
+. local row = 1
+
+. forvalues k = 5(-1)2 {
+  2.     matrix COEF_INFORMAL[`row', 1] = -`k'
+  3.     capture matrix COEF_INFORMAL[`row', 2] = _b[e_m`k']
+  4.     capture matrix COEF_INFORMAL[`row', 3] = _se[e_m`k']
+  5.     local ++row
+  6. }
+
+. matrix COEF_INFORMAL[`row', 1] = -1
+
+. matrix COEF_INFORMAL[`row', 2] = 0
+
+. matrix COEF_INFORMAL[`row', 3] = 0
+
+. local ++row
+
+. matrix COEF_INFORMAL[`row', 1] = 0
+
+. capture matrix COEF_INFORMAL[`row', 2] = _b[e_0]
+
+. capture matrix COEF_INFORMAL[`row', 3] = _se[e_0]
+
+. local ++row
+
+. forvalues k = 1/5 {
+  2.     matrix COEF_INFORMAL[`row', 1] = `k'
+  3.     capture matrix COEF_INFORMAL[`row', 2] = _b[e_p`k']
+  4.     capture matrix COEF_INFORMAL[`row', 3] = _se[e_p`k']
+  5.     local ++row
+  6. }
+
+. 
+. * =============================================================================
+. * 4. VISUALIZATION
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  4. Visualization"
+  4. Visualization
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Export coefficients for plotting
+. preserve
+
+.     clear
+
+.     svmat COEF_FORMAL
+number of observations will be reset to 11
+Press any key to continue, or Break to abort
+Number of observations (_N) was 0, now 11.
+
+.     rename COEF_FORMAL1 event_time
+
+.     rename COEF_FORMAL2 coef_formal
+
+.     rename COEF_FORMAL3 se_formal
+
+. 
+.     tempfile formal_coef
+
+.     save `formal_coef'
+file /var/folders/nh/wb1gprtx2tq7s8ykylw3q82rp3jc5y/T//S_83533.000002 saved as .dta format
+
+. 
+.     clear
+
+.     svmat COEF_INFORMAL
+number of observations will be reset to 11
+Press any key to continue, or Break to abort
+Number of observations (_N) was 0, now 11.
+
+.     rename COEF_INFORMAL1 event_time
+
+.     rename COEF_INFORMAL2 coef_informal
+
+.     rename COEF_INFORMAL3 se_informal
+
+. 
+.     merge 1:1 event_time using `formal_coef', nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                11  
+    -----------------------------------------
+
+. 
+.     * CIs
+.     gen ci_lo_formal = coef_formal - 1.96 * se_formal
+
+.     gen ci_hi_formal = coef_formal + 1.96 * se_formal
+
+.     gen ci_lo_informal = coef_informal - 1.96 * se_informal
+
+.     gen ci_hi_informal = coef_informal + 1.96 * se_informal
+
+. 
+.     * Offset for visualization
+.     gen event_time_informal = event_time + 0.1
+
+. 
+.     * Plot
+.     twoway (connected coef_formal event_time, lcolor(navy) mcolor(navy) msymbol(O)) ///
+>            (rcap ci_lo_formal ci_hi_formal event_time, lcolor(navy)) ///
+>            (connected coef_informal event_time_informal, lcolor(maroon) mcolor(maroon) msymbol(S)) ///
+>            (rcap ci_lo_informal ci_hi_informal event_time_informal, lcolor(maroon)), ///
+>         xline(-0.5, lcolor(red) lpattern(dash)) ///
+>         yline(0, lcolor(black) lpattern(dash)) ///
+>         xlabel(-5(1)5) ///
+>         xtitle("Years Relative to Income Shock") ///
+>         ytitle("Effect on Δln(Consumption)") ///
+>         title("Event Study: Consumption Response to Income Shocks") ///
+>         subtitle("By formality status") ///
+>         legend(order(1 "Formal" 3 "Informal") rows(1) position(6)) ///
+>         note("Reference period: t = -1. Shock: >20% income decline. 95% CIs shown.")
+
+. 
+.     graph export "../Figures/R5_event_study_fixed.png", replace width(1200)
+--Break--
+r(1);
+
+end of do-file
+--Break--
+r(1);

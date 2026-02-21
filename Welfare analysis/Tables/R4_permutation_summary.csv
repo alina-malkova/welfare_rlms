@@ -1,0 +1,10 @@
+statistic,value
+T_observed,.024413012
+delta_pos_observed,.0028966514
+delta_neg_observed,.027309664
+perm_mean,.024413012
+perm_sd,1.2101612e-09
+p_onesided,.58499998
+p_twosided,.58499998
+wald_p,.34139177
+B_valid,200
