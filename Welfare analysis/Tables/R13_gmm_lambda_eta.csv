@@ -1,0 +1,11 @@
+parameter,estimate,ci_lo,ci_hi
+R_informal,1.7005,,
+R_formal,1.2609,,
+se_R_informal,0.2579,,
+se_R_formal,0.0948,,
+lambda_eta50,1.304,0.971,1.638
+lambda_eta88,1.596,1.178,2.013
+lambda_eta100,1.701,1.195,2.206
+p_overid,0.006,,
+lambda_bound_lo,1.701,,
+lambda_bound_hi,1.304,,

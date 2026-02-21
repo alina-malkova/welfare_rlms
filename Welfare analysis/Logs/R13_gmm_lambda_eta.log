@@ -1,0 +1,515 @@
+--------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  /Users/amalkova/Library/CloudStorage/OneDrive-FloridaInstituteofTechnology/_Research/Credit
+> _Market/Credit market (1)/Welfare analysis/Logs/R13_gmm_lambda_eta.log
+  log type:  text
+ opened on:  20 Feb 2026, 20:25:12
+
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  R13: GMM Estimation of λ and η"
+  R13: GMM Estimation of λ and η
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Load data
+. capture use "Data/welfare_panel_cbr.dta", clear
+
+. if _rc != 0 {
+.     use "Data/welfare_panel_shocks.dta", clear
+. }
+
+. 
+. keep if analysis_sample == 1
+(14,139 observations deleted)
+
+. xtset idind year
+
+Panel variable: idind (unbalanced)
+ Time variable: year, 2006 to 2023, but with gaps
+         Delta: 1 year
+
+. 
+. * Ensure asymmetric shock variables exist
+. capture confirm variable dlny_pos
+
+. if _rc != 0 {
+.     gen dlny_pos = max(dlny_lab, 0)
+.     gen dlny_neg = min(dlny_lab, 0)
+. }
+
+. 
+. * =============================================================================
+. * 1. ESTIMATE REDUCED-FORM COEFFICIENTS
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  1. Reduced-Form Estimates"
+  1. Reduced-Form Estimates
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Formal workers
+. di as text "--- Formal workers ---"
+--- Formal workers ---
+
+. reghdfe dlnc dlny_pos dlny_neg if informal == 0, absorb(idind) vce(cluster idind)
+(dropped 4180 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     88,111
+Absorbing 1 HDFE group                            F(   2,  14192) =     488.89
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.0975
+                                                  Adj R-squared   =    -0.0758
+                                                  Within R-sq.    =     0.0164
+Number of clusters (idind)   =     14,193         Root MSE        =     0.3688
+
+                             (Std. err. adjusted for 14,193 clusters in idind)
+------------------------------------------------------------------------------
+             |               Robust
+        dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    dlny_pos |   .1301643   .0068441    19.02   0.000     .1167489    .1435796
+    dlny_neg |   .1641227    .008812    18.62   0.000     .1468501    .1813953
+       _cons |   .0198417   .0013253    14.97   0.000      .017244    .0224395
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |     14193       14193           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local beta_pos_F = _b[dlny_pos]
+
+. local beta_neg_F = _b[dlny_neg]
+
+. local se_pos_F = _se[dlny_pos]
+
+. local se_neg_F = _se[dlny_neg]
+
+. local N_formal = e(N)
+
+. 
+. * Informal workers
+. di as text _n "--- Informal workers ---"
+
+--- Informal workers ---
+
+. reghdfe dlnc dlny_pos dlny_neg if informal == 1, absorb(idind) vce(cluster idind)
+(dropped 4708 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     45,890
+Absorbing 1 HDFE group                            F(   2,   9480) =     124.52
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.1183
+                                                  Adj R-squared   =    -0.1113
+                                                  Within R-sq.    =     0.0067
+Number of clusters (idind)   =      9,481         Root MSE        =     0.4088
+
+                              (Std. err. adjusted for 9,481 clusters in idind)
+------------------------------------------------------------------------------
+             |               Robust
+        dlnc | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    dlny_pos |   .1217957   .0147348     8.27   0.000     .0929124     .150679
+    dlny_neg |   .2071153   .0189467    10.93   0.000     .1699757    .2442549
+       _cons |   .0187757   .0011439    16.41   0.000     .0165334    .0210179
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+       idind |      9481        9481           0    *|
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. local beta_pos_I = _b[dlny_pos]
+
+. local beta_neg_I = _b[dlny_neg]
+
+. local se_pos_I = _se[dlny_pos]
+
+. local se_neg_I = _se[dlny_neg]
+
+. local N_informal = e(N)
+
+. 
+. di as text _n "Reduced-form estimates:"
+
+Reduced-form estimates:
+
+. di as text "  Formal:   β⁺ = " %6.4f `beta_pos_F' " (SE " %5.4f `se_pos_F' "), β⁻ = " %6.4f `beta_neg_
+> F' " (SE " %5.4f `se_neg_F' ")"
+  Formal:   β⁺ = 0.1302 (SE 0.0068), β⁻ = 0.1641 (SE 0.0088)
+
+. di as text "  Informal: β⁺ = " %6.4f `beta_pos_I' " (SE " %5.4f `se_pos_I' "), β⁻ = " %6.4f `beta_neg_
+> I' " (SE " %5.4f `se_neg_I' ")"
+  Informal: β⁺ = 0.1218 (SE 0.0147), β⁻ = 0.2071 (SE 0.0189)
+
+. 
+. * Key ratios
+. local R_informal = abs(`beta_neg_I') / abs(`beta_pos_I')
+
+. local R_formal = abs(`beta_neg_F') / abs(`beta_pos_F')
+
+. 
+. di as text _n "Key ratios:"
+
+Key ratios:
+
+. di as text "  R_I = |β⁻_I|/|β⁺_I| = " %6.4f `R_informal'
+  R_I = |β⁻_I|/|β⁺_I| = 1.7005
+
+. di as text "  R_F = |β⁻_F|/|β⁺_F| = " %6.4f `R_formal'
+  R_F = |β⁻_F|/|β⁺_F| = 1.2609
+
+. 
+. * =============================================================================
+. * 2. GRID SEARCH: λ AS FUNCTION OF η
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  2. Grid Search: λ(η)"
+  2. Grid Search: λ(η)
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. di as text "Using λ = R_I^η:"
+Using λ = R_I^η:
+
+. di as text ""
+
+
+. di as text "   η        λ"
+   η        λ
+
+. di as text "  ----   ------"
+  ----   ------
+
+. 
+. forvalues eta = 0.1(0.1)1.0 {
+  2.     local lambda = `R_informal'^`eta'
+  3.     di as text "  " %4.2f `eta' "    " %6.4f `lambda'
+  4. }
+  0.10    1.0545
+  0.20    1.1120
+  0.30    1.1727
+  0.40    1.2366
+  0.50    1.3040
+  0.60    1.3751
+  0.70    1.4501
+  0.80    1.5292
+  0.90    1.6126
+  1.00    1.7005
+
+. 
+. * =============================================================================
+. * 3. DELTA METHOD STANDARD ERRORS
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  3. Delta Method Standard Errors"
+  3. Delta Method Standard Errors
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * R = |beta_neg| / |beta_pos|
+. * Var(R) ≈ (∂R/∂β⁻)²Var(β⁻) + (∂R/∂β⁺)²Var(β⁺)
+. *        = (1/β⁺)²Var(β⁻) + (β⁻/β⁺²)²Var(β⁺)
+. 
+. local se_R_I = sqrt((`se_neg_I'/abs(`beta_pos_I'))^2 + (abs(`beta_neg_I')*`se_pos_I'/(`beta_pos_I'^2))
+> ^2)
+
+. 
+. di as text "SE(R_I) via delta method = " %6.4f `se_R_I'
+SE(R_I) via delta method = 0.2579
+
+. 
+. * For λ = R^η:
+. * Var(λ) ≈ (∂λ/∂R)²Var(R) = (η*R^(η-1))²Var(R)
+. 
+. foreach eta of numlist 0.5 0.88 1.0 {
+  2.     local lambda_`=round(`eta'*100)' = `R_informal'^`eta'
+  3.     local se_lambda_`=round(`eta'*100)' = `eta' * `R_informal'^(`eta'-1) * `se_R_I'
+  4.     local ci_lo_`=round(`eta'*100)' = `lambda_`=round(`eta'*100)'' - 1.96 * `se_lambda_`=round(`eta
+> '*100)''
+  5.     local ci_hi_`=round(`eta'*100)' = `lambda_`=round(`eta'*100)'' + 1.96 * `se_lambda_`=round(`eta
+> '*100)''
+  6. }
+
+. 
+. di as text _n "Loss aversion estimates with delta method 95% CIs:"
+
+Loss aversion estimates with delta method 95% CIs:
+
+. di as text "  η = 0.50: λ = " %5.3f `lambda_50' " [" %5.3f `ci_lo_50' ", " %5.3f `ci_hi_50' "]"
+  η = 0.50: λ = 1.304 [1.110, 1.498]
+
+. di as text "  η = 0.88: λ = " %5.3f `lambda_88' " [" %5.3f `ci_lo_88' ", " %5.3f `ci_hi_88' "]"
+  η = 0.88: λ = 1.596 [1.178, 2.013]
+
+. di as text "  η = 1.00: λ = " %5.3f `lambda_100' " [" %5.3f `ci_lo_100' ", " %5.3f `ci_hi_100' "]"
+  η = 1.00: λ = 1.701 [1.195, 2.206]
+
+. 
+. * =============================================================================
+. * 4. PARTIAL IDENTIFICATION BOUNDS
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  4. Partial Identification Bounds"
+  4. Partial Identification Bounds
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. local lambda_lo = `R_informal'^1.0
+
+. local lambda_hi = `R_informal'^0.5
+
+. local lambda_est = `R_informal'^0.88
+
+. 
+. di as text "If η ∈ [0.5, 1.0] (standard literature range):"
+If η ∈ [0.5, 1.0] (standard literature range):
+
+. di as text "  λ ∈ [" %5.3f `lambda_lo' ", " %5.3f `lambda_hi' "]"
+  λ ∈ [1.701, 1.304]
+
+. di as text ""
+
+
+. di as text "Point estimate (η = 0.88, Tversky & Kahneman 1992):"
+Point estimate (η = 0.88, Tversky & Kahneman 1992):
+
+. di as text "  λ̂ = " %5.3f `lambda_est'
+  λ̂ = 1.596
+
+. di as text ""
+
+
+. di as text "Comparison with literature:"
+Comparison with literature:
+
+. di as text "  Tversky & Kahneman (1992):   λ = 2.25"
+  Tversky & Kahneman (1992):   λ = 2.25
+
+. di as text "  Köbberling & Wakker (2005):  λ ∈ [1.8, 2.5]"
+  Köbberling & Wakker (2005):  λ ∈ [1.8, 2.5]
+
+. di as text "  Our estimate:                λ = " %5.3f `lambda_est'
+  Our estimate:                λ = 1.596
+
+. 
+. * =============================================================================
+. * 5. OVERIDENTIFICATION TEST
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  5. Overidentification Test"
+  5. Overidentification Test
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. di as text "Model predicts: if λ is the same for all workers but institutions"
+Model predicts: if λ is the same for all workers but institutions
+
+. di as text "mask it for formal workers, then R_F should equal 1."
+mask it for formal workers, then R_F should equal 1.
+
+. di as text ""
+
+
+. di as text "  Observed R_F = " %6.4f `R_formal'
+  Observed R_F = 1.2609
+
+. 
+. local se_R_F = sqrt((`se_neg_F'/abs(`beta_pos_F'))^2 + (abs(`beta_neg_F')*`se_pos_F'/(`beta_pos_F'^2))
+> ^2)
+
+. local t_stat = (`R_formal' - 1) / `se_R_F'
+
+. local p_overid = 2 * (1 - normal(abs(`t_stat')))
+
+. 
+. di as text "  SE(R_F) = " %5.4f `se_R_F'
+  SE(R_F) = 0.0948
+
+. di as text "  H₀: R_F = 1"
+  H₀: R_F = 1
+
+. di as text "  t = " %5.2f `t_stat' ", p = " %5.3f `p_overid'
+  t =  2.75, p = 0.006
+
+. 
+. if `p_overid' > 0.05 {
+.     di as text _n "  ✓ Cannot reject R_F = 1: model supported"
+. }
+
+. else {
+.     di as text _n "  ⚠ Reject R_F = 1: formal workers also show asymmetry"
+
+  ⚠ Reject R_F = 1: formal workers also show asymmetry
+.     di as text "    Implication: institutions attenuate but don't eliminate loss aversion"
+    Implication: institutions attenuate but don't eliminate loss aversion
+. }
+
+. 
+. * =============================================================================
+. * 6. SUMMARY TABLE
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  6. SUMMARY: GMM Estimates of Loss Aversion"
+  6. SUMMARY: GMM Estimates of Loss Aversion
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. di as text _n "=================================================================="
+
+==================================================================
+
+. di as text   "                              Estimate       95% CI"
+                              Estimate       95% CI
+
+. di as text   "=================================================================="
+==================================================================
+
+. di as text   "Reduced-form ratios:"
+Reduced-form ratios:
+
+. di as text   "  R_I = |β⁻_I|/|β⁺_I|         " %6.4f `R_informal' "      (SE " %5.4f `se_R_I' ")"
+  R_I = |β⁻_I|/|β⁺_I|         1.7005      (SE 0.2579)
+
+. di as text   "  R_F = |β⁻_F|/|β⁺_F|         " %6.4f `R_formal' "      (SE " %5.4f `se_R_F' ")"
+  R_F = |β⁻_F|/|β⁺_F|         1.2609      (SE 0.0948)
+
+. di as text   "------------------------------------------------------------------"
+------------------------------------------------------------------
+
+. di as text   "Loss aversion (λ = R_I^η):"
+Loss aversion (λ = R_I^η):
+
+. di as text   "  η = 0.50:                   " %6.3f `lambda_50' "     [" %5.3f `ci_lo_50' ", " %5.3f `
+> ci_hi_50' "]"
+  η = 0.50:                    1.304     [1.110, 1.498]
+
+. di as text   "  η = 0.88 (preferred):       " %6.3f `lambda_88' "     [" %5.3f `ci_lo_88' ", " %5.3f `
+> ci_hi_88' "]"
+  η = 0.88 (preferred):        1.596     [1.178, 2.013]
+
+. di as text   "  η = 1.00:                   " %6.3f `lambda_100' "     [" %5.3f `ci_lo_100' ", " %5.3f
+>  `ci_hi_100' "]"
+  η = 1.00:                    1.701     [1.195, 2.206]
+
+. di as text   "------------------------------------------------------------------"
+------------------------------------------------------------------
+
+. di as text   "Partial ID (η ∈ [0.5, 1]):    λ ∈ [" %5.3f `lambda_lo' ", " %5.3f `lambda_hi' "]"
+Partial ID (η ∈ [0.5, 1]):    λ ∈ [1.701, 1.304]
+
+. di as text   "------------------------------------------------------------------"
+------------------------------------------------------------------
+
+. di as text   "Overidentification (R_F = 1): p = " %5.3f `p_overid'
+Overidentification (R_F = 1): p = 0.006
+
+. di as text   "=================================================================="
+==================================================================
+
+. di as text   "N (formal):   " `N_formal'
+N (formal):   88111
+
+. di as text   "N (informal): " `N_informal'
+N (informal): 45890
+
+. di as text   "=================================================================="
+==================================================================
+
+. 
+. * =============================================================================
+. * 7. EXPORT RESULTS
+. * =============================================================================
+. 
+. di as text _n "=============================================="
+
+==============================================
+
+. di as text    "  7. Export Results"
+  7. Export Results
+
+. di as text    "=============================================="
+==============================================
+
+. 
+. * Summary CSV
+. preserve
+
+.     clear
+
+.     input str30 parameter float estimate float ci_lo float ci_hi
+
+                          parameter   estimate      ci_lo      ci_hi
+  1.     "R_informal" `R_informal' . .
+'`' cannot be read as a number
+  1.     "R_formal" `R_formal' . .
+'`' cannot be read as a number
+  1.     "se_R_informal" `se_R_I' . .
+'`' cannot be read as a number
+  1.     "se_R_formal" `se_R_F' . .
+'`' cannot be read as a number
+  1.     "lambda_eta50" `lambda_50' `ci_lo_50' `ci_hi_50'
+'`' cannot be read as a number
+  1.     "lambda_eta88" `lambda_88' `ci_lo_88' `ci_hi_88'
+'`' cannot be read as a number
+  1.     "lambda_eta100" `lambda_100' `ci_lo_100' `ci_hi_100'
+'`' cannot be read as a number
+  1.     "p_overid" `p_overid' . .
+'`' cannot be read as a number
+  1.     "lambda_bound_lo" `lambda_lo' . .
+'`' cannot be read as a number
+  1.     "lambda_bound_hi" `lambda_hi' . .
+'`' cannot be read as a number
+  1.     end
+
+.     export delimited using "Tables/R13_gmm_lambda_eta.csv", replace

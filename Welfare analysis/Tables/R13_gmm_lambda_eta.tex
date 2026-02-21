@@ -1,0 +1,27 @@
+\begin{table}[htbp]
+\centering
+\caption{GMM Estimates of Loss Aversion ($\lambda$)}
+\label{tab:gmm_lambda}
+\begin{tabular}{lcc}
+\toprule
+Parameter & Estimate & 95\% CI \\
+\midrule
+\multicolumn{3}{l}{\textit{Reduced-form moments:}} \\
+$R_I = |\beta^-_I|/|\beta^+_I|$ & 1.7005 & (SE 0.2579) \\
+$R_F = |\beta^-_F|/|\beta^+_F|$ & 1.2609 & (SE 0.0948) \\
+\midrule
+\multicolumn{3}{l}{\textit{Loss aversion ($\lambda = R_I^\eta$):}} \\
+$\eta = 0.50$ & 1.304 & [0.971, 1.638] \\
+$\eta = 0.88$ (preferred) & 1.596 & [1.178, 2.013] \\
+$\eta = 1.00$ & 1.701 & [1.195, 2.206] \\
+\midrule
+Partial ID ($\eta \in [0.5, 1]$) & --- & [1.304, 1.701] \\
+\midrule
+Overid. test ($R_F = 1$) & $p = 0.006$ & \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Notes: $R = |\beta^-|/|\beta^+|$ is the ratio of consumption responses to negative vs positive income shocks. Under K\H{o}szegi-Rabin, $\lambda = R^\eta$ where $\eta$ is the curvature parameter. Preferred estimate uses $\eta = 0.88$ from Tversky \& Kahneman (1992). Overidentification test checks whether formal workers show symmetric responses ($R_F = 1$); rejection suggests institutions attenuate but do not eliminate loss aversion.
+\end{tablenotes}
+\end{table}
