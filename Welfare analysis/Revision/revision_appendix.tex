@@ -47,6 +47,8 @@ This appendix presents comprehensive robustness analyses addressing methodologic
     \item Alternative behavioral models (habit formation vs loss aversion)
     \item Nonparametric identification (regression kink design)
     \item Multiple hypothesis testing corrections
+    \item Exposed formal workers test (institutional vs type hypothesis)
+    \item Four-way BPP decomposition (permanent/transitory $\times$ positive/negative)
 \end{enumerate}
 
 %===============================================================================
@@ -422,6 +424,123 @@ $\tau = 0.75$ & 0.0065 & 0.0520 & 0.0260 & 0.0087 & Yes \\
 \end{itemize}
 
 %===============================================================================
+\section{R11: Exposed Formal Workers Test}
+%===============================================================================
+
+\subsection{Motivation}
+Our model predicts that formal and informal workers have the same underlying loss aversion parameter ($\lambda$), but formal workers' institutional coverage (employment protection, unemployment insurance, severance pay) masks this asymmetry. If this hypothesis is correct, formal workers who lack such institutional protection---``exposed'' formal workers---should exhibit consumption smoothing patterns similar to informal workers.
+
+An alternative hypothesis is that the asymmetry reflects unobserved worker \textit{types}: formal workers are fundamentally different from informal workers in their consumption behavior, regardless of institutional coverage.
+
+\subsection{Identification Strategy}
+We identify ``exposed'' formal workers using wage arrears (RLMS variable \texttt{j14}: ``Does your workplace owe you money?''). Workers experiencing wage arrears face income uncertainty similar to informal workers, as their institutional protections have effectively failed.
+
+\begin{itemize}
+    \item \textbf{Protected formal:} Formal workers with no wage arrears ($N = 106{,}403$)
+    \item \textbf{Exposed formal:} Formal workers owed wages by employer ($N = 3{,}517$)
+    \item \textbf{Informal:} All informal workers ($N = 63{,}410$)
+\end{itemize}
+
+\subsection{Results}
+
+\begin{table}[htbp]
+\centering
+\caption{Asymmetric Consumption Smoothing by Worker Type}
+\label{tab:r11_results}
+\begin{tabular}{lccccc}
+\toprule
+Worker Type & $\beta^+$ & $\beta^-$ & Asymmetry & $p$-value & $N$ \\
+ & (SE) & (SE) & ($\beta^- - \beta^+$) & & \\
+\midrule
+Protected formal & 0.109 & 0.141 & 0.032 & 0.013** & 106,403 \\
+ & (0.007) & (0.009) & & & \\[0.3em]
+Exposed formal & 0.129 & 0.171 & 0.042 & 0.708 & 3,517 \\
+ & (0.073) & (0.067) & & & \\[0.3em]
+Informal & 0.110 & 0.176 & 0.066 & 0.013** & 63,410 \\
+ & (0.015) & (0.019) & & & \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Notes: Individual FE regressions with clustered SE. Controls: age, age$^2$, gender, marital status, household size, children, urban, year FE. ** $p < 0.05$.
+\end{tablenotes}
+\end{table}
+
+\subsection{Interpretation}
+The results present a nuanced picture:
+
+\begin{enumerate}
+    \item \textbf{Protected formal workers} show statistically significant asymmetry ($p = 0.013$), with $\beta^- = 0.141 > \beta^+ = 0.109$. This is \textit{unexpected} under the pure institutional hypothesis.
+    \item \textbf{Exposed formal workers} show the largest point estimate of asymmetry (0.042), but this is \textit{not statistically significant} ($p = 0.708$) due to limited sample size.
+    \item \textbf{Informal workers} show highly significant asymmetry ($p = 0.013$), consistent with the core model.
+\end{enumerate}
+
+\textbf{Key finding:} The test yields mixed evidence. Protected formal workers unexpectedly show significant asymmetry, suggesting institutions may \textit{attenuate} but not eliminate loss-averse behavior. The point estimate for exposed formal (0.042) lies between protected formal (0.032) and informal (0.066), but lacks statistical power.
+
+%===============================================================================
+\section{R12: Asymmetric BPP Decomposition}
+%===============================================================================
+
+\subsection{Motivation}
+Standard BPP decomposition separates income shocks into permanent ($\zeta$) and transitory ($v$) components. We extend this to a \textbf{novel four-way decomposition}: permanent/transitory $\times$ positive/negative. This allows us to test whether the informality penalty operates specifically through negative transitory shocks.
+
+\subsection{Methodology}
+Following BPP quasi-differencing:
+\begin{align}
+\zeta_t &\approx \frac{\Delta y_t + \Delta y_{t+1}}{2} \quad \text{(permanent)} \\
+v_t &= \Delta y_t - \zeta_t \quad \text{(transitory)}
+\end{align}
+
+We then decompose each into positive/negative components and estimate:
+\begin{equation}
+\Delta \ln C = \psi^+ \zeta^+ + \psi^- \zeta^- + \phi^+ v^+ + \phi^- v^- + X'\theta + \mu_i + \varepsilon
+\end{equation}
+
+\textbf{Model prediction:} If the informality penalty reflects impaired smoothing of negative transitory shocks, we expect $\phi^-_I > \phi^-_F$ but $\phi^+_I \approx \phi^+_F$.
+
+\subsection{Results}
+
+\begin{table}[htbp]
+\centering
+\caption{Four-Way BPP Decomposition}
+\label{tab:r12_results}
+\begin{tabular}{lcccc}
+\toprule
+ & \multicolumn{2}{c}{Formal Workers} & \multicolumn{2}{c}{Informal Workers} \\
+ & Estimate & (SE) & Estimate & (SE) \\
+\midrule
+\multicolumn{5}{l}{\textit{Permanent Shocks:}} \\
+$\psi^+$ (positive) & 0.114 & (0.013) & 0.103 & (0.030) \\
+$\psi^-$ (negative) & 0.239 & (0.017) & 0.213 & (0.036) \\
+Asymmetry $p$-value & \multicolumn{2}{c}{0.000***} & \multicolumn{2}{c}{0.041**} \\
+\midrule
+\multicolumn{5}{l}{\textit{Transitory Shocks:}} \\
+$\phi^+$ (positive) & 0.139 & (0.011) & 0.166 & (0.024) \\
+$\phi^-$ (negative) & 0.147 & (0.010) & 0.142 & (0.026) \\
+Asymmetry $p$-value & \multicolumn{2}{c}{0.653} & \multicolumn{2}{c}{0.553} \\
+\midrule
+$N$ & \multicolumn{2}{c}{71,939} & \multicolumn{2}{c}{24,912} \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Notes: Individual FE. Clustered SE. *** $p<0.01$, ** $p<0.05$.
+\end{tablenotes}
+\end{table}
+
+\subsection{Key Findings}
+
+\begin{enumerate}
+    \item \textbf{Both sectors show asymmetry in permanent shocks:} $\psi^- > \psi^+$ is highly significant for formal ($p < 0.001$) and significant for informal ($p = 0.041$) workers.
+    \item \textbf{Neither sector shows asymmetry in transitory shocks:} $\phi^- \approx \phi^+$ for both groups.
+    \item \textbf{No significant formal-informal differences:} The interaction terms are not significant ($p > 0.10$ for all).
+\end{enumerate}
+
+\textbf{Interpretation:} The BPP decomposition reveals that consumption asymmetry operates through \textit{permanent} shocks, not transitory shocks. Both formal and informal workers respond more strongly to negative permanent income changes. This challenges the model prediction that informal workers face worse smoothing of negative transitory shocks specifically.
+
+This finding suggests that the informality penalty may reflect differential exposure to permanent income risk, rather than differential insurance against transitory fluctuations.
+
+%===============================================================================
 \section{Summary of Robustness Results}
 %===============================================================================
 
@@ -431,23 +550,35 @@ $\tau = 0.75$ & 0.0065 & 0.0520 & 0.0260 & 0.0087 & Yes \\
 \label{tab:summary}
 \begin{tabular}{llcc}
 \toprule
-Analysis & Method & $\delta^-$ Estimate & Conclusion \\
+Analysis & Method & Key Estimate & Conclusion \\
 \midrule
 R1 & Partial identification & $\lambda \in [1.5, 2.9]$ & Loss aversion confirmed \\
-R2 & Quantile regression & 0.06--0.09 & Robust across distribution \\
-R3 & Selection correction & 0.063--0.070 & Not driven by selection \\
+R2 & Quantile regression & $\delta^- = 0.06$--$0.09$ & Robust across distribution \\
+R3 & Selection correction & $\delta^- = 0.063$--$0.070$ & Not driven by selection \\
 R4 & Permutation test & $p < 0.0001$ & Highly significant \\
 R5 & Event study & Persistent gap & Dynamic effect confirmed \\
 R6 & BPP decomposition & $\phi_{\text{inf}} = 0.108$ & Transitory shock channel \\
 R7 & Habit formation & 8.3\% reduction & Loss aversion, not habits \\
 R8 & Regression kink & $p = 0.031$ & Kink at zero confirmed \\
-R9 & Entropy balancing & 0.071 & Robust to reweighting \\
+R9 & Entropy balancing & $\delta^- = 0.071$ & Robust to reweighting \\
 R10 & Multiple testing & 5/8 survive & Main results robust \\
+\midrule
+\multicolumn{4}{l}{\textit{New Tests (JEEA Revision):}} \\
+R11 & Exposed formal workers & Protected: $p = 0.013$ & Mixed evidence \\
+R12 & Four-way BPP & $\psi^- > \psi^+$ both groups & Asymmetry in permanent shocks \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Overall conclusion:} The asymmetric consumption smoothing penalty for informal workers ($\delta^- \approx 0.07$) is robust to all methodological concerns. The finding that informal workers face impaired downside smoothing---consistent with loss aversion and credit constraints---survives partial identification, selection correction, nonparametric tests, multiple hypothesis corrections, and alternative behavioral models.
+\textbf{Overall conclusion:} The asymmetric consumption smoothing penalty for informal workers ($\delta^- \approx 0.07$) is robust to most methodological concerns. The finding that informal workers face impaired downside smoothing---consistent with loss aversion and credit constraints---survives partial identification, selection correction, nonparametric tests, multiple hypothesis corrections, and alternative behavioral models.
+
+However, two new tests (R11--R12) provide nuanced evidence:
+\begin{itemize}
+    \item \textbf{R11 (Exposed Formal Workers):} Protected formal workers unexpectedly show significant asymmetry, suggesting institutions \textit{attenuate} but do not eliminate loss-averse behavior. The exposed formal workers test lacks statistical power due to small sample size.
+    \item \textbf{R12 (Four-Way BPP):} The asymmetry operates through \textit{permanent} shocks rather than transitory shocks for both sectors. This suggests the informality penalty may reflect differential exposure to permanent income risk, not just transitory smoothing failures.
+\end{itemize}
+
+These findings motivate a refined interpretation: while informal workers clearly face worse consumption outcomes following negative income shocks, the mechanism may involve both behavioral responses (loss aversion) and structural exposure to permanent income volatility.
 
 %===============================================================================
 \bibliographystyle{aer}
